@@ -25,14 +25,15 @@ ComPtr<ID3D11InputLayout> inputLayout;
 struct ModelData {
 	Matrix mModel;
 };
+
 struct CameraData {
 	Matrix mView;
-	Matrix mProj;
+	Matrix mProjection;
 };
 
-Matrix mProjection;
 ComPtr<ID3D11Buffer> cbModel;
 ComPtr<ID3D11Buffer> cbCamera;
+Matrix mProjection;
 
 // Game
 Game::Game() noexcept(false) {
@@ -61,8 +62,8 @@ void Game::Initialize(HWND window, int width, int height) {
 	basicShader->Create(m_deviceResources.get());
 
 	mProjection = Matrix::CreatePerspectiveFieldOfView(
-		60 * XM_PI / 180.0f,
-		(float)width / (float)height,
+		60 * XM_PI / 180.0f, 
+		(float) width / (float)height, 
 		0.01f, 
 		100.0f
 	);
@@ -71,6 +72,7 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	device->CreateInputLayout(
 		InputElementDescs.data(), InputElementDescs.size(),
@@ -79,65 +81,57 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	{ // VERTEX BUFFER INIT
 		std::vector<float> vbData = {
-			-0.5f,  0.5f, 0.0f,
-			 0.5f, -0.5f, 0.0f,
-			-0.5f, -0.5f, 0.0f,
-			 0.5f,  0.5f, 0.0f
+			// POSITION (XYZ) COLOR (RGB)
+		   -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, //  v0
+		   0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, //   v1
+		   0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, //  v2
+		   -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // v3
 		};
+
 		CD3D11_BUFFER_DESC desc(
-			sizeof(float) * vbData.size(),
+			sizeof(float) * vbData.size(), 
 			D3D11_BIND_VERTEX_BUFFER
 		);
+
 		D3D11_SUBRESOURCE_DATA initialData = {};
 		initialData.pSysMem = vbData.data();
 
-		device->CreateBuffer(
-			&desc,
-			&initialData,
-			vertexBuffer.ReleaseAndGetAddressOf()
-		);
+		device->CreateBuffer(&desc, &initialData, vertexBuffer.ReleaseAndGetAddressOf());
 	}
-
+	
 	{ // INDEX BUFFER INIT
 		std::vector<uint32_t> ibData = {
-			 0,  1, 2,
-			 0,  3, 1,
+			0, 1, 2, // tri1
+			2, 3, 0 //  tri2
 		};
+
 		CD3D11_BUFFER_DESC desc(
-			sizeof(uint32_t) * ibData.size(),
+			sizeof(int) * ibData.size(), 
 			D3D11_BIND_INDEX_BUFFER
 		);
+
 		D3D11_SUBRESOURCE_DATA initialData = {};
 		initialData.pSysMem = ibData.data();
 
-		device->CreateBuffer(
-			&desc,
-			&initialData,
-			indexBuffer.ReleaseAndGetAddressOf()
-		);
+		device->CreateBuffer(&desc, &initialData, indexBuffer.ReleaseAndGetAddressOf());
 	}
 
 	{ // CONSTANT BUFFER MODEL INIT
 		CD3D11_BUFFER_DESC desc(
-			sizeof(ModelData),
+			sizeof(ModelData), 
 			D3D11_BIND_CONSTANT_BUFFER
 		);
-		device->CreateBuffer(
-			&desc,
-			NULL,
-			cbModel.ReleaseAndGetAddressOf()
-		);
+
+		device->CreateBuffer(&desc, nullptr, cbModel.ReleaseAndGetAddressOf());
 	}
+
 	{ // CONSTANT BUFFER CAMERA INIT
 		CD3D11_BUFFER_DESC desc(
-			sizeof(CameraData),
+			sizeof(CameraData), 
 			D3D11_BIND_CONSTANT_BUFFER
 		);
-		device->CreateBuffer(
-			&desc,
-			NULL,
-			cbCamera.ReleaseAndGetAddressOf()
-		);
+
+		device->CreateBuffer(&desc, nullptr, cbCamera.ReleaseAndGetAddressOf());
 	}
 }
 
@@ -184,8 +178,9 @@ void Game::Render() {
 	basicShader->Apply(m_deviceResources.get());
 
 	ID3D11Buffer* vbs[] = { vertexBuffer.Get() };
-	UINT strides[] = { sizeof(float) * 3 };
+	UINT strides[] = { sizeof(float) * 6 };
 	UINT offsets[] = { 0 };
+
 	context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
 	context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
@@ -198,21 +193,22 @@ void Game::Render() {
 		Vector3::Zero,
 		Vector3::Up
 	).Transpose();
-	cameraData.mProj = mProjection.Transpose();
-	context->UpdateSubresource(cbCamera.Get(), 0, NULL, &cameraData, 0, 0);
 
-	for (int i = 0; i < 10; i++) {
-		ModelData modelData = {};
-		Matrix model = Matrix::CreateRotationZ(m_timer.GetTotalSeconds());
-		if(i % 2) 
-			model *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45);
+	cameraData.mProjection = mProjection.Transpose();
+	context->UpdateSubresource(cbCamera.Get(), 0, nullptr, &cameraData, 0, 0);
+
+	for (int i = 0; i < 8; ++i) {
+		Matrix model = Matrix::CreateRotationZ(m_timer.GetTotalSeconds() + i * XM_PI / (i % 2 == 0 ? 180.0f : -180.0f) * 45);
+		model *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds());
 		model *= Matrix::CreateTranslation(
 			cos(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45),
 			sin(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45),
-			0);
+			sin(m_timer.GetTotalSeconds() * 2.0f) * 1.5f
+		);
 
+		ModelData modelData = {};
 		modelData.mModel = model.Transpose();
-		context->UpdateSubresource(cbModel.Get(), 0, NULL, &modelData, 0, 0);
+		context->UpdateSubresource(cbModel.Get(), 0, nullptr, &modelData, 0, 0);
 
 		context->DrawIndexed(6, 0, 0);
 	}
@@ -248,10 +244,11 @@ void Game::OnWindowSizeChanged(int width, int height) {
 
 	mProjection = Matrix::CreatePerspectiveFieldOfView(
 		60 * XM_PI / 180.0f,
-		(float)width / (float)height,
+		(float) width / (float)height,
 		0.01f,
 		100.0f
 	);
+
 	// The windows size has changed:
 	// We can realloc here any resources that depends on the target resolution (post processing etc)
 }
