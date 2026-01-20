@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include "Cube.h"
 
 Cube::Cube(Vector3 pos) : m_mModel(Matrix::CreateTranslation(pos)) {}

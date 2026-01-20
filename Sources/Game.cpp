@@ -9,6 +9,7 @@
 #include "Engine/Buffer.h"
 #include "Engine/VertexLayout.h"
 #include "Engine/Shader.h"
+#include "Engine/Texture.h"
 #include "Minicraft/Cube.h"
 
 extern void ExitGame() noexcept;
@@ -19,7 +20,8 @@ using namespace DirectX::SimpleMath;
 using Microsoft::WRL::ComPtr;
 
 // Global stuff
-Shader basicShader(L"Basic");
+Shader basicShader(L"basic");
+Texture terrain(L"terrain");
 
 struct ModelData {
 	Matrix mModel;
@@ -33,11 +35,11 @@ struct CameraData {
 Matrix mProjection;
 ConstantBuffer<ModelData> cbModel;
 ConstantBuffer<CameraData> cbCamera;
-Cube cube{{0, 0, 0}};
+Cube cube(Vector3::Zero);
 
 // Game
 Game::Game() noexcept(false) {
-	m_deviceResources = std::make_unique<DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D32_FLOAT, 2);
+	m_deviceResources = std::make_unique<DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, DXGI_FORMAT_D32_FLOAT, 2);
 	m_deviceResources->RegisterDeviceNotify(this);
 }
 
@@ -69,6 +71,7 @@ void Game::Initialize(HWND window, int width, int height) {
 	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
 
 	cube.Generate(m_deviceResources.get());
+	terrain.Create(m_deviceResources.get());
 
 	// CONSTANT BUFFER INIT
 	cbModel.Create(m_deviceResources.get());
@@ -107,7 +110,7 @@ void Game::Render() {
 	auto depthStencil = m_deviceResources->GetDepthStencilView();
 	auto const viewport = m_deviceResources->GetScreenViewport();
 
-	context->ClearRenderTargetView(renderTarget, Colors::CornflowerBlue);
+	context->ClearRenderTargetView(renderTarget, ColorsLinear::CornflowerBlue);
 	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->RSSetViewports(1, &viewport);
 	context->OMSetRenderTargets(1, &renderTarget, depthStencil);
@@ -116,6 +119,7 @@ void Game::Render() {
 	ApplyInputLayout<VertexLayout_PositionUV>(m_deviceResources.get());
 
 	basicShader.Apply(m_deviceResources.get());
+	terrain.Apply(m_deviceResources.get());
 
 	cbModel.ApplyToVS(m_deviceResources.get(), 0);
 	cbCamera.ApplyToVS(m_deviceResources.get(), 1);

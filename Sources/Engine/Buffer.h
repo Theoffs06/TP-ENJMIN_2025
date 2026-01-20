@@ -22,8 +22,8 @@ public:
 		initialData.pSysMem = m_data.data();
 
 		deviceRes->GetD3DDevice()->CreateBuffer(
-			&desc, 
-			&initialData, 
+			&desc,
+			&initialData,
 			m_buffer.ReleaseAndGetAddressOf()
 		);
 	}
@@ -67,8 +67,8 @@ public:
 		initialData.pSysMem = m_data.data();
 
 		deviceRes->GetD3DDevice()->CreateBuffer(
-			&desc, 
-			&initialData, 
+			&desc,
+			&initialData,
 			m_buffer.ReleaseAndGetAddressOf()
 		);
 	}
@@ -95,7 +95,7 @@ public:
 		);
 
 		deviceRes->GetD3DDevice()->CreateBuffer(
-			&desc, 
+			&desc,
 			nullptr, 
 			m_buffer.ReleaseAndGetAddressOf()
 		);
