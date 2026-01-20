@@ -6,6 +6,7 @@
 #include "Game.h"
 
 #include "PerlinNoise.hpp"
+#include "Engine/Buffer.h"
 #include "Engine/VertexLayout.h"
 #include "Engine/Shader.h"
 
@@ -19,8 +20,8 @@ using Microsoft::WRL::ComPtr;
 // Global stuff
 Shader* basicShader;
 
-ComPtr<ID3D11Buffer> vertexBuffer;
-ComPtr<ID3D11Buffer> indexBuffer;
+VertexBuffer<VertexLayout_Position> vertexBuffer;
+IndexBuffer indexBuffer;
 
 struct ModelData {
 	Matrix mModel;
@@ -31,8 +32,8 @@ struct CameraData {
 };
 
 Matrix mProjection;
-ComPtr<ID3D11Buffer> cbModel;
-ComPtr<ID3D11Buffer> cbCamera;
+ConstantBuffer<ModelData> cbModel;
+ConstantBuffer<CameraData> cbCamera;
 
 // Game
 Game::Game() noexcept(false) {
@@ -71,68 +72,18 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	GenerateInputLayout<VertexLayout_Position>(m_deviceResources.get(), basicShader);
 
-	{ // VERTEX BUFFER INIT
-		std::vector<VertexLayout_Position> vbData = {
-			{{-0.5f,  0.5f, 0.0f}},
-			{{ 0.5f, -0.5f, 0.0f}},
-			{{-0.5f, -0.5f, 0.0f}},
-			{{ 0.5f,  0.5f, 0.0f}}
-		};
-		CD3D11_BUFFER_DESC desc(
-			sizeof(VertexLayout_Position) * vbData.size(),
-			D3D11_BIND_VERTEX_BUFFER
-		);
-		D3D11_SUBRESOURCE_DATA initialData = {};
-		initialData.pSysMem = vbData.data();
+	vertexBuffer.PushVertex({ {-0.5f,  0.5f, 0.0f} });
+	vertexBuffer.PushVertex({ { 0.5f, -0.5f, 0.0f} });
+	vertexBuffer.PushVertex({ {-0.5f, -0.5f, 0.0f} });
+	vertexBuffer.PushVertex({ { 0.5f,  0.5f, 0.0f} });
+	vertexBuffer.Create(m_deviceResources.get());
 
-		device->CreateBuffer(
-			&desc,
-			&initialData,
-			vertexBuffer.ReleaseAndGetAddressOf()
-		);
-	}
+	indexBuffer.PushTriangle(0, 1, 2);
+	indexBuffer.PushTriangle(0, 3, 1);
+	indexBuffer.Create(m_deviceResources.get());
 
-	{ // INDEX BUFFER INIT
-		std::vector<uint32_t> ibData = {
-			 0,  1, 2,
-			 0,  3, 1,
-		};
-		CD3D11_BUFFER_DESC desc(
-			sizeof(uint32_t) * ibData.size(),
-			D3D11_BIND_INDEX_BUFFER
-		);
-		D3D11_SUBRESOURCE_DATA initialData = {};
-		initialData.pSysMem = ibData.data();
-
-		device->CreateBuffer(
-			&desc,
-			&initialData,
-			indexBuffer.ReleaseAndGetAddressOf()
-		);
-	}
-
-	{ // CONSTANT BUFFER MODEL INIT
-		CD3D11_BUFFER_DESC desc(
-			sizeof(ModelData),
-			D3D11_BIND_CONSTANT_BUFFER
-		);
-		device->CreateBuffer(
-			&desc,
-			NULL,
-			cbModel.ReleaseAndGetAddressOf()
-		);
-	}
-	{ // CONSTANT BUFFER CAMERA INIT
-		CD3D11_BUFFER_DESC desc(
-			sizeof(CameraData),
-			D3D11_BIND_CONSTANT_BUFFER
-		);
-		device->CreateBuffer(
-			&desc,
-			NULL,
-			cbCamera.ReleaseAndGetAddressOf()
-		);
-	}
+	cbModel.Create(m_deviceResources.get());
+	cbCamera.Create(m_deviceResources.get());
 }
 
 void Game::Tick() {
@@ -178,36 +129,29 @@ void Game::Render() {
 
 	basicShader->Apply(m_deviceResources.get());
 
-	ID3D11Buffer* vbs[] = { vertexBuffer.Get() };
-	UINT strides[] = { sizeof(VertexLayout_Position) };
-	UINT offsets[] = { 0 };
-	context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
+	vertexBuffer.Apply(m_deviceResources.get());
+	indexBuffer.Apply(m_deviceResources.get());
+	cbModel.ApplyToVS(m_deviceResources.get(), 0);
+	cbCamera.ApplyToVS(m_deviceResources.get(), 1);
 
-	context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-	ID3D11Buffer* cbs[] = { cbModel.Get(), cbCamera.Get() };
-	context->VSSetConstantBuffers(0, 2, cbs);
-
-	CameraData cameraData = {};
-	cameraData.mView = Matrix::CreateLookAt(
+	cbCamera.data.mView = Matrix::CreateLookAt(
 		Vector3::Backward * 5,
 		Vector3::Zero,
 		Vector3::Up
 	).Transpose();
-	cameraData.mProj = mProjection.Transpose();
-	context->UpdateSubresource(cbCamera.Get(), 0, NULL, &cameraData, 0, 0);
+	cbCamera.data.mProj = mProjection.Transpose();
+	cbCamera.Update(m_deviceResources.get());
 
-		ModelData modelData = {};
-		Matrix model = Matrix::CreateRotationZ(m_timer.GetTotalSeconds());
-		model *= Matrix::CreateTranslation(
-			cos(m_timer.GetTotalSeconds()),
-			sin(m_timer.GetTotalSeconds()),
-			0);
+	Matrix model = Matrix::CreateRotationZ(m_timer.GetTotalSeconds());
+	model *= Matrix::CreateTranslation(
+		cos(m_timer.GetTotalSeconds()),
+		sin(m_timer.GetTotalSeconds()),
+		0);
 
-		modelData.mModel = model.Transpose();
-		context->UpdateSubresource(cbModel.Get(), 0, NULL, &modelData, 0, 0);
+	cbModel.data.mModel = model.Transpose();
+	cbModel.Update(m_deviceResources.get());
 
-		context->DrawIndexed(6, 0, 0);
+	context->DrawIndexed(indexBuffer.Size(), 0, 0);
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();
