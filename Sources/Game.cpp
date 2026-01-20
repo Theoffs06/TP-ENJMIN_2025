@@ -6,6 +6,7 @@
 #include "Game.h"
 
 #include "PerlinNoise.hpp"
+#include "Engine/VertexLayout.h"
 #include "Engine/Shader.h"
 
 extern void ExitGame() noexcept;
@@ -20,7 +21,6 @@ Shader* basicShader;
 
 ComPtr<ID3D11Buffer> vertexBuffer;
 ComPtr<ID3D11Buffer> indexBuffer;
-ComPtr<ID3D11InputLayout> inputLayout;
 
 struct ModelData {
 	Matrix mModel;
@@ -69,23 +69,17 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	auto device = m_deviceResources->GetD3DDevice();
 
-	const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	device->CreateInputLayout(
-		InputElementDescs.data(), InputElementDescs.size(),
-		basicShader->vsBytecode.data(), basicShader->vsBytecode.size(),
-		inputLayout.ReleaseAndGetAddressOf());
+	GenerateInputLayout<VertexLayout_Position>(m_deviceResources.get(), basicShader);
 
 	{ // VERTEX BUFFER INIT
-		std::vector<float> vbData = {
-			-0.5f,  0.5f, 0.0f,
-			 0.5f, -0.5f, 0.0f,
-			-0.5f, -0.5f, 0.0f,
-			 0.5f,  0.5f, 0.0f
+		std::vector<VertexLayout_Position> vbData = {
+			{{-0.5f,  0.5f, 0.0f}},
+			{{ 0.5f, -0.5f, 0.0f}},
+			{{-0.5f, -0.5f, 0.0f}},
+			{{ 0.5f,  0.5f, 0.0f}}
 		};
 		CD3D11_BUFFER_DESC desc(
-			sizeof(float) * vbData.size(),
+			sizeof(VertexLayout_Position) * vbData.size(),
 			D3D11_BIND_VERTEX_BUFFER
 		);
 		D3D11_SUBRESOURCE_DATA initialData = {};
@@ -179,14 +173,16 @@ void Game::Render() {
 	context->OMSetRenderTargets(1, &renderTarget, depthStencil);
 	
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->IASetInputLayout(inputLayout.Get());
+	
+	ApplyInputLayout<VertexLayout_Position>(m_deviceResources.get());
 
 	basicShader->Apply(m_deviceResources.get());
 
 	ID3D11Buffer* vbs[] = { vertexBuffer.Get() };
-	UINT strides[] = { sizeof(float) * 3 };
+	UINT strides[] = { sizeof(VertexLayout_Position) };
 	UINT offsets[] = { 0 };
 	context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
+
 	context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 	ID3D11Buffer* cbs[] = { cbModel.Get(), cbCamera.Get() };
@@ -201,21 +197,17 @@ void Game::Render() {
 	cameraData.mProj = mProjection.Transpose();
 	context->UpdateSubresource(cbCamera.Get(), 0, NULL, &cameraData, 0, 0);
 
-	for (int i = 0; i < 10; i++) {
 		ModelData modelData = {};
 		Matrix model = Matrix::CreateRotationZ(m_timer.GetTotalSeconds());
-		if(i % 2) 
-			model *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45);
 		model *= Matrix::CreateTranslation(
-			cos(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45),
-			sin(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45),
+			cos(m_timer.GetTotalSeconds()),
+			sin(m_timer.GetTotalSeconds()),
 			0);
 
 		modelData.mModel = model.Transpose();
 		context->UpdateSubresource(cbModel.Get(), 0, NULL, &modelData, 0, 0);
 
 		context->DrawIndexed(6, 0, 0);
-	}
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();
