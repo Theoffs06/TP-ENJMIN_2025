@@ -6,7 +6,10 @@
 #include "Game.h"
 
 #include "PerlinNoise.hpp"
+#include "Engine/Buffer.h"
+#include "Engine/VertexLayout.h"
 #include "Engine/Shader.h"
+#include "Minicraft/Cube.h"
 
 extern void ExitGame() noexcept;
 
@@ -16,11 +19,7 @@ using namespace DirectX::SimpleMath;
 using Microsoft::WRL::ComPtr;
 
 // Global stuff
-Shader* basicShader;
-
-ComPtr<ID3D11Buffer> vertexBuffer;
-ComPtr<ID3D11Buffer> indexBuffer;
-ComPtr<ID3D11InputLayout> inputLayout;
+Shader basicShader(L"Basic");
 
 struct ModelData {
 	Matrix mModel;
@@ -31,9 +30,10 @@ struct CameraData {
 	Matrix mProjection;
 };
 
-ComPtr<ID3D11Buffer> cbModel;
-ComPtr<ID3D11Buffer> cbCamera;
 Matrix mProjection;
+ConstantBuffer<ModelData> cbModel;
+ConstantBuffer<CameraData> cbCamera;
+Cube cube{{0, 0, 0}};
 
 // Game
 Game::Game() noexcept(false) {
@@ -42,7 +42,6 @@ Game::Game() noexcept(false) {
 }
 
 Game::~Game() {
-	delete basicShader;
 	g_inputLayouts.clear();
 }
 
@@ -58,81 +57,22 @@ void Game::Initialize(HWND window, int width, int height) {
 	m_deviceResources->CreateDeviceResources();
 	m_deviceResources->CreateWindowSizeDependentResources();
 
-	basicShader = new Shader(L"Basic");
-	basicShader->Create(m_deviceResources.get());
+	basicShader.Create(m_deviceResources.get());
 
 	mProjection = Matrix::CreatePerspectiveFieldOfView(
 		60 * XM_PI / 180.0f, 
-		(float) width / (float)height, 
+		(float) width / (float) height, 
 		0.01f, 
 		100.0f
 	);
 
-	auto device = m_deviceResources->GetD3DDevice();
+	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
 
-	const std::vector<D3D11_INPUT_ELEMENT_DESC> InputElementDescs = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	device->CreateInputLayout(
-		InputElementDescs.data(), InputElementDescs.size(),
-		basicShader->vsBytecode.data(), basicShader->vsBytecode.size(),
-		inputLayout.ReleaseAndGetAddressOf());
+	cube.Generate(m_deviceResources.get());
 
-	{ // VERTEX BUFFER INIT
-		std::vector<float> vbData = {
-			// POSITION (XYZ) COLOR (RGB)
-		   -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, //  v0
-		   0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, //   v1
-		   0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, //  v2
-		   -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // v3
-		};
-
-		CD3D11_BUFFER_DESC desc(
-			sizeof(float) * vbData.size(), 
-			D3D11_BIND_VERTEX_BUFFER
-		);
-
-		D3D11_SUBRESOURCE_DATA initialData = {};
-		initialData.pSysMem = vbData.data();
-
-		device->CreateBuffer(&desc, &initialData, vertexBuffer.ReleaseAndGetAddressOf());
-	}
-	
-	{ // INDEX BUFFER INIT
-		std::vector<uint32_t> ibData = {
-			0, 1, 2, // tri1
-			2, 3, 0 //  tri2
-		};
-
-		CD3D11_BUFFER_DESC desc(
-			sizeof(int) * ibData.size(), 
-			D3D11_BIND_INDEX_BUFFER
-		);
-
-		D3D11_SUBRESOURCE_DATA initialData = {};
-		initialData.pSysMem = ibData.data();
-
-		device->CreateBuffer(&desc, &initialData, indexBuffer.ReleaseAndGetAddressOf());
-	}
-
-	{ // CONSTANT BUFFER MODEL INIT
-		CD3D11_BUFFER_DESC desc(
-			sizeof(ModelData), 
-			D3D11_BIND_CONSTANT_BUFFER
-		);
-
-		device->CreateBuffer(&desc, nullptr, cbModel.ReleaseAndGetAddressOf());
-	}
-
-	{ // CONSTANT BUFFER CAMERA INIT
-		CD3D11_BUFFER_DESC desc(
-			sizeof(CameraData), 
-			D3D11_BIND_CONSTANT_BUFFER
-		);
-
-		device->CreateBuffer(&desc, nullptr, cbCamera.ReleaseAndGetAddressOf());
-	}
+	// CONSTANT BUFFER INIT
+	cbModel.Create(m_deviceResources.get());
+	cbCamera.Create(m_deviceResources.get());
 }
 
 void Game::Tick() {
@@ -173,45 +113,31 @@ void Game::Render() {
 	context->OMSetRenderTargets(1, &renderTarget, depthStencil);
 	
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->IASetInputLayout(inputLayout.Get());
+	ApplyInputLayout<VertexLayout_PositionUV>(m_deviceResources.get());
 
-	basicShader->Apply(m_deviceResources.get());
+	basicShader.Apply(m_deviceResources.get());
 
-	ID3D11Buffer* vbs[] = { vertexBuffer.Get() };
-	UINT strides[] = { sizeof(float) * 6 };
-	UINT offsets[] = { 0 };
+	cbModel.ApplyToVS(m_deviceResources.get(), 0);
+	cbCamera.ApplyToVS(m_deviceResources.get(), 1);
 
-	context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
-	context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-	ID3D11Buffer* cbs[] = { cbModel.Get(), cbCamera.Get() };
-	context->VSSetConstantBuffers(0, 2, cbs);
-
-	CameraData cameraData = {};
-	cameraData.mView = Matrix::CreateLookAt(
+	cbCamera.data.mView = Matrix::CreateLookAt(
 		Vector3::Backward * 5,
 		Vector3::Zero,
 		Vector3::Up
 	).Transpose();
 
-	cameraData.mProjection = mProjection.Transpose();
-	context->UpdateSubresource(cbCamera.Get(), 0, nullptr, &cameraData, 0, 0);
+	cbCamera.data.mProjection = mProjection.Transpose();
+	cbCamera.UpdateBuffer(m_deviceResources.get());
 
-	for (int i = 0; i < 8; ++i) {
-		Matrix model = Matrix::CreateRotationZ(m_timer.GetTotalSeconds() + i * XM_PI / (i % 2 == 0 ? 180.0f : -180.0f) * 45);
-		model *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds());
-		model *= Matrix::CreateTranslation(
-			cos(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45),
-			sin(m_timer.GetTotalSeconds() + i * XM_PI / 180.0f * 45),
-			sin(m_timer.GetTotalSeconds() * 2.0f) * 1.5f
-		);
-
-		ModelData modelData = {};
-		modelData.mModel = model.Transpose();
-		context->UpdateSubresource(cbModel.Get(), 0, nullptr, &modelData, 0, 0);
-
-		context->DrawIndexed(6, 0, 0);
-	}
+	Matrix model = cube.GetLocalMatrix();
+	model *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 45);
+	model *= Matrix::CreateRotationX(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 60);
+	model *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 90);
+	
+	cbModel.data.mModel = model.Transpose();
+	cbModel.UpdateBuffer(m_deviceResources.get());
+	
+	cube.Draw(m_deviceResources.get());
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();

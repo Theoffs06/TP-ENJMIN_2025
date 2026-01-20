@@ -1,11 +1,11 @@
 struct Input {
 	float3 pos : POSITION0;
-    float3 col : COLOR0;
+    float2 uv : TEXCOORD0;
 };
 
 struct Output {
 	float4 pos : SV_POSITION;
-    float3 col : COLOR0;
+    float2 uv : TEXCOORD0;
 };
 
 cbuffer ModelData : register(b0) {
@@ -23,7 +23,7 @@ Output main(Input input) {
     output.pos = mul(float4(input.pos, 1), model);
     output.pos = mul(output.pos, view);
     output.pos = mul(output.pos, projection);
-    output.col = input.col;
+    output.uv = input.uv;
 
 	return output;
 }
