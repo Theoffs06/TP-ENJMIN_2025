@@ -39,7 +39,7 @@ Cube cube(Vector3::Zero);
 
 // Game
 Game::Game() noexcept(false) {
-	m_deviceResources = std::make_unique<DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D32_FLOAT, 2);
+	m_deviceResources = std::make_unique<DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, DXGI_FORMAT_D32_FLOAT, 2);
 	m_deviceResources->RegisterDeviceNotify(this);
 }
 
@@ -111,7 +111,7 @@ void Game::Render() {
 	auto depthStencil = m_deviceResources->GetDepthStencilView();
 	auto const viewport = m_deviceResources->GetScreenViewport();
 
-	context->ClearRenderTargetView(renderTarget, Colors::CornflowerBlue);
+	context->ClearRenderTargetView(renderTarget, ColorsLinear::CornflowerBlue);
 	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->RSSetViewports(1, &viewport);
 	context->OMSetRenderTargets(1, &renderTarget, depthStencil);
@@ -127,7 +127,7 @@ void Game::Render() {
 	cbCamera.ApplyToVS(m_deviceResources.get(), 1);
 
 	cbCamera.data.mView = Matrix::CreateLookAt(
-		Vector3::Backward * 5,
+		Vector3::Backward * 2,
 		Vector3::Zero,
 		Vector3::Up
 	).Transpose();
