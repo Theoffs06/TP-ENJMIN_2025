@@ -125,7 +125,7 @@ void Game::Render() {
 	cbCamera.ApplyToVS(m_deviceResources.get(), 1);
 
 	cbCamera.data.mView = Matrix::CreateLookAt(
-		Vector3::Backward * 5,
+		Vector3::Backward * 2,
 		Vector3::Zero,
 		Vector3::Up
 	).Transpose();
