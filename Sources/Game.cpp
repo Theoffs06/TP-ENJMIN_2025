@@ -10,6 +10,7 @@
 #include "Engine/VertexLayout.h"
 #include "Engine/Shader.h"
 #include "Engine/Texture.h"
+#include "Engine/Camera..h"
 #include "Minicraft/Cube.h"
 
 extern void ExitGame() noexcept;
@@ -22,19 +23,13 @@ using Microsoft::WRL::ComPtr;
 // Global stuff
 Shader basicShader(L"basic");
 Texture terrain(L"terrain");
+Camera camera(60, 1.0);
 
 struct ModelData {
 	Matrix mModel;
 };
 
-struct CameraData {
-	Matrix mView;
-	Matrix mProjection;
-};
-
-Matrix mProjection;
 ConstantBuffer<ModelData> cbModel;
-ConstantBuffer<CameraData> cbCamera;
 Cube cube(Vector3::Zero);
 
 // Game
@@ -61,21 +56,15 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	basicShader.Create(m_deviceResources.get());
 
-	mProjection = Matrix::CreatePerspectiveFieldOfView(
-		60 * XM_PI / 180.0f, 
-		(float) width / (float) height, 
-		0.01f, 
-		100.0f
-	);
+	camera.UpdateAspectRatio((float)width / (float)height);
+	camera.Create(m_deviceResources.get());
 
 	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
 
 	cube.Generate(m_deviceResources.get());
-	terrain.Create(m_deviceResources.get());
-
-	// CONSTANT BUFFER INIT
 	cbModel.Create(m_deviceResources.get());
-	cbCamera.Create(m_deviceResources.get());
+
+	terrain.Create(m_deviceResources.get());
 }
 
 void Game::Tick() {
@@ -120,18 +109,9 @@ void Game::Render() {
 
 	basicShader.Apply(m_deviceResources.get());
 	terrain.Apply(m_deviceResources.get());
+	camera.Apply(m_deviceResources.get());
 
 	cbModel.ApplyToVS(m_deviceResources.get(), 0);
-	cbCamera.ApplyToVS(m_deviceResources.get(), 1);
-
-	cbCamera.data.mView = Matrix::CreateLookAt(
-		Vector3::Backward * 2,
-		Vector3::Zero,
-		Vector3::Up
-	).Transpose();
-
-	cbCamera.data.mProjection = mProjection.Transpose();
-	cbCamera.UpdateBuffer(m_deviceResources.get());
 
 	Matrix model = cube.GetLocalMatrix();
 	model *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 45);
@@ -171,12 +151,7 @@ void Game::OnWindowSizeChanged(int width, int height) {
 	if (!m_deviceResources->WindowSizeChanged(width, height))
 		return;
 
-	mProjection = Matrix::CreatePerspectiveFieldOfView(
-		60 * XM_PI / 180.0f,
-		(float) width / (float) height,
-		0.01f,
-		100.0f
-	);
+	camera.UpdateAspectRatio((float) width / (float) height);
 
 	// The windows size has changed:
 	// We can realloc here any resources that depends on the target resolution (post processing etc)
