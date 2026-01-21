@@ -137,10 +137,9 @@ void Game::Render() {
 	model *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 45);
 	model *= Matrix::CreateRotationX(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 60);
 	model *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 90);
-	
+
 	cbModel.data.mModel = model.Transpose();
 	cbModel.UpdateBuffer(m_deviceResources.get());
-	
 	cube.Draw(m_deviceResources.get());
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
@@ -174,7 +173,7 @@ void Game::OnWindowSizeChanged(int width, int height) {
 
 	mProjection = Matrix::CreatePerspectiveFieldOfView(
 		60 * XM_PI / 180.0f,
-		(float) width / (float)height,
+		(float) width / (float) height,
 		0.01f,
 		100.0f
 	);

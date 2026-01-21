@@ -5,26 +5,31 @@
 Cube::Cube(Vector3 pos) : m_mModel(Matrix::CreateTranslation(pos)) {}
 
 void Cube::Generate(const DeviceResources* deviceRes) {
-	PushFace(Vector3::Zero, Vector3::Up, Vector3::Right);
-	PushFace(Vector3::Right, Vector3::Up, Vector3::Forward);
-	PushFace(Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left);
-	PushFace(Vector3::Forward, Vector3::Up, Vector3::Backward);
-	PushFace(Vector3::Up, Vector3::Forward, Vector3::Right);
-	PushFace(Vector3::Right + Vector3::Forward, Vector3::Left, Vector3::Backward);
+	PushFace(Vector3::Zero, Vector3::Up, Vector3::Right, 0);
+	PushFace(Vector3::Right, Vector3::Up, Vector3::Forward, 1);
+	PushFace(Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, 2);
+	PushFace(Vector3::Forward, Vector3::Up, Vector3::Backward, 3);
+	PushFace(Vector3::Up, Vector3::Forward, Vector3::Right, 4);
+	PushFace(Vector3::Right + Vector3::Forward, Vector3::Left, Vector3::Backward, 5);
 
 	m_vBuffer.Create(deviceRes);
 	m_iBuffer.Create(deviceRes);
 }
 
-void Cube::PushFace(const Vector3& pos, const Vector3& up, const Vector3& right) {
-	// POSITION (xyz) / UV (xy)
-	const uint32_t bottomLeft = m_vBuffer.PushVertex({pos, {0.0f, 0.0f}}); //                v0
-	const uint32_t bottomRight = m_vBuffer.PushVertex({pos + right, { 1.0f, 0.0f }}); //     v1
-	const uint32_t upLeft = m_vBuffer.PushVertex({ pos + up, {0, 1.0f} }); //                v2
-	const uint32_t upRight = m_vBuffer.PushVertex({ pos + up + right, {1.0f,1.0f} }); // v3
+void Cube::PushFace(const Vector3& pos, const Vector3& up, const Vector3& right, int texId) {
+	const Vector2 uv(
+		texId % 16, 
+		texId / 16
+	);
 
-	m_iBuffer.PushTriangle(bottomLeft, upLeft, upRight); //      tri0
-	m_iBuffer.PushTriangle(bottomLeft, upRight, bottomRight); // tri1
+	// POSITION (xyz) / UV (xy)
+	const uint32_t bottomLeft = m_vBuffer.PushVertex({pos, uv / 16.0f}); //                                     v0
+	const uint32_t bottomRight = m_vBuffer.PushVertex({pos + right, (uv + Vector2::UnitX) / 16.0f}); //      v1
+	const uint32_t upLeft = m_vBuffer.PushVertex({ pos + up, (uv + Vector2::UnitY) / 16.0f }); //            v2
+	const uint32_t upRight = m_vBuffer.PushVertex({ pos + up + right, (uv + Vector2::One) / 16.0f }); // v3
+
+	m_iBuffer.PushTriangle(bottomLeft, upLeft, upRight); //      tri0 (v0, v2, v3)
+	m_iBuffer.PushTriangle(bottomLeft, upRight, bottomRight); // tri1 (v0, v3, v2)
 }
 
 void Cube::Draw(const DeviceResources* deviceRes) const {

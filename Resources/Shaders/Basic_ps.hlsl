@@ -7,5 +7,5 @@ struct Input {
 };
 
 float4 main(Input input) : SV_TARGET {
-    return tex.Sample(samplerState, input.uv / 16);
+    return tex.Sample(samplerState, input.uv);
 }
