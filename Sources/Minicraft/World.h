@@ -18,4 +18,5 @@ public:
 	void Draw(DeviceResources* res);
 
 	BlockId* GetCube(int gx, int gy, int gz);
+	void SetCube(int gx, int gy, int gz, BlockId id);
 };

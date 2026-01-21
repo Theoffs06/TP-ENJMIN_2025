@@ -7,20 +7,11 @@ using namespace DirectX::SimpleMath;
 void World::Generate(DeviceResources* res) {
 	for (int z = 0; z < WORLD_SIZE; z++) {
 		for (int x = 0; x < WORLD_SIZE; x++) {
-			for (int y = 0; y < 3; y++) {
-				auto blockId = GetCube(x, y, z);
-				*blockId = STONE;
-			}
-
-			for (int y = 3; y < 6; y++) {
-				auto blockId = GetCube(x, y, z);
-				*blockId = DIRT;
-			}
-
-			{
-				auto blockId = GetCube(x, 6, z);
-				*blockId = GRASS;
-			}
+			for (int y = 0; y < 3; y++)
+				SetCube(x, y, z, STONE);
+			for (int y = 3; y < 6; y++)
+				SetCube(x, y, z, DIRT);
+			SetCube(x, 6, z, GRASS);
 		}
 	}
 
@@ -55,4 +46,15 @@ BlockId* World::GetCube(int gx, int gy, int gz) {
 	if (gy >= WORLD_SIZE) return nullptr;
 	if (gz >= WORLD_SIZE) return nullptr;
 	return &data[gx + gy * WORLD_SIZE + gz * WORLD_SIZE * WORLD_SIZE];
+}
+
+
+void World::SetCube(int gx, int gy, int gz, BlockId id) {
+	if (gx < 0) return;
+	if (gy < 0) return;
+	if (gz < 0) return;
+	if (gx >= WORLD_SIZE) return;
+	if (gy >= WORLD_SIZE) return;
+	if (gz >= WORLD_SIZE) return;
+	data[gx + gy * WORLD_SIZE + gz * WORLD_SIZE * WORLD_SIZE] = id;
 }
