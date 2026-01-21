@@ -15,7 +15,7 @@ void Camera::Apply(const DeviceResources* deviceRes) {
 
 	m_cbCamera.data.mView = m_view.Transpose();
 	m_cbCamera.data.mProjection = m_projection.Transpose();
-	m_cbCamera.UpdateBuffer(deviceRes);
+	m_cbCamera.Update(deviceRes);
 }
 
 void Camera::UpdateAspectRatio(float aspectRatio) {
@@ -66,4 +66,8 @@ Matrix Camera::GetInverseViewMatrix() const {
 
 Vector3 Camera::GetPosition() const {
 	return  m_position;
+}
+
+Quaternion Camera::GetRotation() const {
+	return m_rotation;
 }

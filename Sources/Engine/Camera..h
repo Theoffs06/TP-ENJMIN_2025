@@ -36,6 +36,7 @@ public:
 	Vector3 Up() const;
 	Matrix GetInverseViewMatrix() const;
 	Vector3 GetPosition() const;
+	Quaternion GetRotation() const;
 private:
 	void UpdateViewMatrix();
 };

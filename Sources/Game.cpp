@@ -6,12 +6,11 @@
 #include "Game.h"
 
 #include "PerlinNoise.hpp"
-#include "Engine/Buffer.h"
 #include "Engine/VertexLayout.h"
 #include "Engine/Shader.h"
 #include "Engine/Texture.h"
 #include "Engine/Camera..h"
-#include "Minicraft/Cube.h"
+#include "Minicraft/World.h"
 
 extern void ExitGame() noexcept;
 
@@ -24,13 +23,7 @@ using Microsoft::WRL::ComPtr;
 Shader basicShader(L"basic");
 Texture terrain(L"terrain");
 Camera camera(60, 1.0);
-
-struct ModelData {
-	Matrix mModel;
-};
-
-ConstantBuffer<ModelData> cbModel;
-Cube cube(Vector3::Zero);
+World world;
 
 // Game
 Game::Game() noexcept(false) {
@@ -57,14 +50,12 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	basicShader.Create(m_deviceResources.get());
 
-	camera.UpdateAspectRatio((float)width / (float)height);
+	camera.UpdateAspectRatio((float) width / (float) height);
 	camera.Create(m_deviceResources.get());
 
 	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
 
-	cube.Generate(m_deviceResources.get());
-	cbModel.Create(m_deviceResources.get());
-
+	world.Generate(m_deviceResources.get());
 	terrain.Create(m_deviceResources.get());
 }
 
@@ -80,13 +71,28 @@ void Game::Tick() {
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
-	
+	const double dt = timer.GetElapsedSeconds();
+
 	// add kb/mouse interact here
 	// SetPosition par rapport a WASD en prenant en compte la direction de la vue
 	// SetRotation par rapport a la souris
-	
-	if (kb.Escape)
-		ExitGame();
+
+	if (kb.Escape) ExitGame();
+
+	Vector3 delta = Vector3::Zero;
+	if (kb.Z) delta += camera.Forward();
+	if (kb.S) delta -= camera.Forward();
+	if (kb.Q) delta -= camera.Right();
+	if (kb.D) delta += camera.Right();
+	if (kb.Space) delta += camera.Up();
+	if (kb.LeftShift) delta -= camera.Up();
+	//delta = Vector3::TransformNormal(delta, camera.GetInverseViewMatrix());
+	camera.SetPosition(camera.GetPosition() + delta * 4.0f * dt);
+
+	Quaternion rot = camera.GetRotation();
+	rot *= Quaternion::CreateFromAxisAngle(camera.Right(), -ms.y * dt * 0.2f);
+	rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x * dt * 0.2f);
+	camera.SetRotation(rot);
 
 	auto const pad = m_gamePad->GetState(0);
 }
@@ -114,16 +120,7 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
 
-	cbModel.ApplyToVS(m_deviceResources.get(), 0);
-
-	Matrix model = cube.GetLocalMatrix();
-	model *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 45);
-	model *= Matrix::CreateRotationX(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 60);
-	model *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * XM_PI / 180.0f * 90);
-
-	cbModel.data.mModel = model.Transpose();
-	cbModel.UpdateBuffer(m_deviceResources.get());
-	cube.Draw(m_deviceResources.get());
+	world.Draw(m_deviceResources.get());
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();

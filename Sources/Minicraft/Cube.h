@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Minicraft/Block.h"
 #include "Engine/Buffer.h"
 #include "Engine/VertexLayout.h"
 
@@ -10,8 +11,9 @@ class Cube {
 	VertexBuffer<VertexLayout_PositionUV> m_vBuffer;
 	IndexBuffer m_iBuffer;
 	Matrix m_mModel;
+	BlockData m_data;
 public:
-	Cube(Vector3 pos);
+	Cube(Vector3 pos, BlockId id);
 
 	void Generate(const DeviceResources* deviceRes);
 	void Draw(const DeviceResources* deviceRes) const;

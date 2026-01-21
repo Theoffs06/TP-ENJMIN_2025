@@ -2,15 +2,15 @@
 
 #include "Cube.h"
 
-Cube::Cube(Vector3 pos) : m_mModel(Matrix::CreateTranslation(pos)) {}
+Cube::Cube(Vector3 pos, BlockId id) : m_mModel(Matrix::CreateTranslation(pos)), m_data(BlockData::Get(id)) {}
 
 void Cube::Generate(const DeviceResources* deviceRes) {
-	PushFace(Vector3::Zero, Vector3::Up, Vector3::Right, 0);
-	PushFace(Vector3::Right, Vector3::Up, Vector3::Forward, 1);
-	PushFace(Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, 2);
-	PushFace(Vector3::Forward, Vector3::Up, Vector3::Backward, 3);
-	PushFace(Vector3::Up, Vector3::Forward, Vector3::Right, 4);
-	PushFace(Vector3::Right + Vector3::Forward, Vector3::Left, Vector3::Backward, 5);
+	PushFace(Vector3::Zero, Vector3::Up, Vector3::Right, m_data.texIdSide);
+	PushFace(Vector3::Right, Vector3::Up, Vector3::Forward, m_data.texIdSide);
+	PushFace(Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, m_data.texIdSide);
+	PushFace(Vector3::Forward, Vector3::Up, Vector3::Backward, m_data.texIdSide);
+	PushFace(Vector3::Up, Vector3::Forward, Vector3::Right, m_data.texIdTop);
+	PushFace(Vector3::Right + Vector3::Forward, Vector3::Left, Vector3::Backward, m_data.texIdBottom);
 
 	m_vBuffer.Create(deviceRes);
 	m_iBuffer.Create(deviceRes);

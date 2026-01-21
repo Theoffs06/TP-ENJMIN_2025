@@ -101,7 +101,7 @@ public:
 		);
 	}
 
-	void UpdateBuffer(const DeviceResources* deviceRes) {
+	void Update(const DeviceResources* deviceRes) {
 		deviceRes->GetD3DDeviceContext()->UpdateSubresource(
 			m_buffer.Get(), 
 			0, 
