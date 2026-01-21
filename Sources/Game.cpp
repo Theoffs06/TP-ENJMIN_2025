@@ -83,10 +83,23 @@ void Game::Tick() {
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
+
+	double dt = std::max(timer.GetElapsedSeconds(), 0.01666);
 	
-	// add kb/mouse interact here
-	// SetPosition par rapport a WASD en prenant en compte la direction de la vue
-	// SetRotation par rapport a la souris
+	Vector3 delta = Vector3::Zero;
+	if (kb.Z) delta += camera.Forward();
+	if (kb.S) delta -= camera.Forward();
+	if (kb.Q) delta -= camera.Right();
+	if (kb.D) delta += camera.Right();
+	if (kb.Space) delta += camera.Up();
+	if (kb.LeftShift) delta -= camera.Up();
+	//delta = Vector3::TransformNormal(delta, camera.GetInverseViewMatrix());
+	camera.SetPosition(camera.GetPosition() + delta * 4.0f * dt);
+	
+	Quaternion rot = camera.GetRotation();
+	rot *= Quaternion::CreateFromAxisAngle(camera.Right(), -ms.y * dt * 0.2f);
+	rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x * dt * 0.2f);
+	camera.SetRotation(rot);
 	
 	if (kb.Escape)
 		ExitGame();
@@ -120,7 +133,7 @@ void Game::Render() {
 
 	cbModel.ApplyToVS(m_deviceResources.get(), 0);
 
-	Matrix model = Matrix::CreateRotationY(m_timer.GetTotalSeconds());
+	Matrix model = Matrix::Identity;// Matrix::CreateRotationY(m_timer.GetTotalSeconds());
 	/*model *= Matrix::CreateTranslation(
 		cos(m_timer.GetTotalSeconds()),
 		sin(m_timer.GetTotalSeconds()),

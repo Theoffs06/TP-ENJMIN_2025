@@ -25,6 +25,8 @@ public:
 
 	void SetPosition(const Vector3& pos) { position = pos; UpdateViewMatrix(); }
 	void SetRotation(const Quaternion& rot) { rotation = rot; UpdateViewMatrix(); }
+	Vector3 GetPosition() const { return position; }
+	Quaternion GetRotation() const { return rotation; }
 
 	Vector3 Forward() const { return Vector3::TransformNormal(Vector3::Forward, view.Invert()); }
 	Vector3 Right() const { return Vector3::TransformNormal(Vector3::Right, view.Invert()); }
