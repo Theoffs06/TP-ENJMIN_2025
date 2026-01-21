@@ -35,6 +35,7 @@ public:
 	Vector3 Right() const;
 	Vector3 Up() const;
 	Matrix GetInverseViewMatrix() const;
+	Vector3 GetPosition() const;
 private:
 	void UpdateViewMatrix();
 };

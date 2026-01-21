@@ -48,6 +48,7 @@ void Game::Initialize(HWND window, int width, int height) {
 	m_keyboard = std::make_unique<Keyboard>();
 	m_mouse = std::make_unique<Mouse>();
 	m_mouse->SetWindow(window);
+	m_mouse->SetMode(Mouse::MODE_RELATIVE);
 
 	// Initialize the Direct3D resources
 	m_deviceResources->SetWindow(window, width, height);
@@ -81,6 +82,8 @@ void Game::Update(DX::StepTimer const& timer) {
 	auto const ms = m_mouse->GetState();
 	
 	// add kb/mouse interact here
+	// SetPosition par rapport a WASD en prenant en compte la direction de la vue
+	// SetRotation par rapport a la souris
 	
 	if (kb.Escape)
 		ExitGame();

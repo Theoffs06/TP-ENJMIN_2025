@@ -63,3 +63,7 @@ Vector3 Camera::Up() const {
 Matrix Camera::GetInverseViewMatrix() const {
 	return m_view.Invert();
 }
+
+Vector3 Camera::GetPosition() const {
+	return  m_position;
+}
