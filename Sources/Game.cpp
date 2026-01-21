@@ -12,6 +12,7 @@
 #include "Engine/Texture.h"
 #include "Engine/Camera.h"
 #include "Minicraft/Cube.h"
+#include "Minicraft/World.h"
 
 extern void ExitGame() noexcept;
 
@@ -24,14 +25,7 @@ using Microsoft::WRL::ComPtr;
 Shader basicShader(L"basic");
 Texture terrain(L"terrain");
 Camera camera(60, 1.0);
-
-struct ModelData {
-	Matrix mModel;
-	Vector4 time;
-};
-
-ConstantBuffer<ModelData> cbModel;
-Cube cube(Vector3::Zero);
+World world;
 
 // Game
 Game::Game() noexcept(false) {
@@ -65,8 +59,7 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
 
-	cube.Generate(m_deviceResources.get());
-	cbModel.Create(m_deviceResources.get());
+	world.Generate(m_deviceResources.get());
 
 	terrain.Create(m_deviceResources.get());
 }
@@ -84,7 +77,7 @@ void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
 
-	double dt = std::max(timer.GetElapsedSeconds(), 0.01666);
+	double dt = timer.GetElapsedSeconds();
 	
 	Vector3 delta = Vector3::Zero;
 	if (kb.Z) delta += camera.Forward();
@@ -131,18 +124,7 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
 
-	cbModel.ApplyToVS(m_deviceResources.get(), 0);
-
-	Matrix model = Matrix::Identity;// Matrix::CreateRotationY(m_timer.GetTotalSeconds());
-	/*model *= Matrix::CreateTranslation(
-		cos(m_timer.GetTotalSeconds()),
-		sin(m_timer.GetTotalSeconds()),
-		0);*/
-
-	cbModel.data.mModel = model.Transpose();
-	cbModel.Update(m_deviceResources.get());
-
-	cube.Draw(m_deviceResources.get());
+	world.Draw(m_deviceResources.get());
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();
