@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Block.h"
+#include "Cube.h"
 #include <array>
 
 #include "Minicraft/Cube.h"
@@ -27,4 +29,5 @@ public:
 	void Draw(const DeviceResources* devRes);
 
 	BlockId* GetCube(int gx, int gy, int gz);
+	void SetCube(int gx, int gy, int gz, BlockId id);
 };

@@ -73,9 +73,6 @@ void Game::Update(DX::StepTimer const& timer) {
 	auto const ms = m_mouse->GetState();
 	const double dt = timer.GetElapsedSeconds();
 
-	// add kb/mouse interact here
-	// SetPosition par rapport a WASD en prenant en compte la direction de la vue
-	// SetRotation par rapport a la souris
 
 	if (kb.Escape) ExitGame();
 
@@ -114,6 +111,7 @@ void Game::Render() {
 	context->OMSetRenderTargets(1, &renderTarget, depthStencil);
 	
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	
 	ApplyInputLayout<VertexLayout_PositionUV>(m_deviceResources.get());
 
 	basicShader.Apply(m_deviceResources.get());
