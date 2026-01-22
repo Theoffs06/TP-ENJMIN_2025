@@ -134,9 +134,9 @@ void Game::Render() {
 	if (m_timer.GetFrameCount() == 0)
 		return;
 
-	auto context = m_deviceResources->GetD3DDeviceContext();
-	auto renderTarget = m_deviceResources->GetRenderTargetView();
-	auto depthStencil = m_deviceResources->GetDepthStencilView();
+	const auto context = m_deviceResources->GetD3DDeviceContext();
+	const auto renderTarget = m_deviceResources->GetRenderTargetView();
+	const auto depthStencil = m_deviceResources->GetDepthStencilView();
 	auto const viewport = m_deviceResources->GetScreenViewport();
 
 	context->ClearRenderTargetView(renderTarget, ColorsLinear::CornflowerBlue);
@@ -152,10 +152,11 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
 
-	context->OMSetBlendState(m_commonStates->Opaque(), NULL, 0xffffffff);
-	world.Draw(m_deviceResources.get(), ShaderPass::SP_OPAQUE);
-	context->OMSetBlendState(m_commonStates->AlphaBlend(), NULL, 0xffffffff);
-	world.Draw(m_deviceResources.get(), ShaderPass::SP_TRANSPARENT);
+	context->OMSetBlendState(m_commonStates->Opaque(), nullptr, 0xffffffff);
+	world.Draw(m_deviceResources.get(), SP_OPAQUE);
+	
+	context->OMSetBlendState(m_commonStates->AlphaBlend(), nullptr, 0xffffffff);
+	world.Draw(m_deviceResources.get(), SP_TRANSPARENT);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
