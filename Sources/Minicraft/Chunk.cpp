@@ -11,6 +11,9 @@ void Chunk::SetPosition(World* world, int cx, int cy, int cz) {
 }
 
 void Chunk::Generate(const DeviceResources* deviceRes) {
+	m_vBuffer.Clear();
+	m_iBuffer.Clear();
+
 	for (int z = 0; z < CHUNK_SIZE; z++) {
 		for (int y = 0; y < CHUNK_SIZE; y++) {
 			for (int x = 0; x < CHUNK_SIZE; x++) {

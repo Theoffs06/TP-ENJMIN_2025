@@ -12,6 +12,10 @@ public:
 		return m_data.size() - 1;
 	}
 
+	void Clear() {
+		m_data.clear();
+	}
+
 	void Create(const DeviceResources* deviceRes) {
 		if (m_data.empty()) return;
 		const CD3D11_BUFFER_DESC desc(
@@ -52,6 +56,10 @@ public:
 		m_data.push_back(a);
 		m_data.push_back(b);
 		m_data.push_back(c);
+	}
+
+	void Clear() {
+		m_data.clear();
 	}
 
 	uint32_t Size() const {

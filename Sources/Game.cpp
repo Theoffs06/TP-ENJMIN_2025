@@ -88,29 +88,42 @@ void Game::Tick() {
 	Render();
 }
 
+bool imGuiMode = false;
+
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
 	const double dt = timer.GetElapsedSeconds();
 
+	if (kb.IsKeyDown(Keyboard::P)) imGuiMode = true;
+	if (kb.IsKeyDown(Keyboard::M)) imGuiMode = false;
 
-	if (kb.Escape) ExitGame();
+	if (imGuiMode) {
+		m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
 
-	Vector3 delta = Vector3::Zero;
-	if (kb.Z) delta += camera.Forward();
-	if (kb.S) delta -= camera.Forward();
-	if (kb.Q) delta -= camera.Right();
-	if (kb.D) delta += camera.Right();
-	if (kb.Space) delta += camera.Up();
-	if (kb.LeftShift) delta -= camera.Up();
-	//delta = Vector3::TransformNormal(delta, camera.GetInverseViewMatrix());
-	camera.SetPosition(camera.GetPosition() + delta * 70.0f * dt);
+		ImGui::ShowDemoWindow();
+	} 
+	else {
+		m_mouse->SetMode(Mouse::MODE_RELATIVE);
 	
-	Quaternion rot = camera.GetRotation();
-	rot *= Quaternion::CreateFromAxisAngle(camera.Right(), -ms.y * dt * 0.2f);
-	rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x * dt * 0.2f);
-	camera.SetRotation(rot);
+		Vector3 delta = Vector3::Zero;
+		if (kb.Z) delta += camera.Forward();
+		if (kb.S) delta -= camera.Forward();
+		if (kb.Q) delta -= camera.Right();
+		if (kb.D) delta += camera.Right();
+		if (kb.Space) delta += camera.Up();
+		if (kb.LeftShift) delta -= camera.Up();
+		//delta = Vector3::TransformNormal(delta, camera.GetInverseViewMatrix());
+		camera.SetPosition(camera.GetPosition() + delta * 70.0f * dt);
+	
+		Quaternion rot = camera.GetRotation();
+		rot *= Quaternion::CreateFromAxisAngle(camera.Right(), -ms.y * dt * 0.2f);
+		rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x * dt * 0.2f);
+		camera.SetRotation(rot);
+	}
+	
+	if (kb.Escape) ExitGame();
 
 	auto const pad = m_gamePad->GetState(0);
 }
