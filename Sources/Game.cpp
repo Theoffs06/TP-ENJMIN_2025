@@ -32,6 +32,10 @@ Game::Game() noexcept(false) {
 }
 
 Game::~Game() {
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
 	g_inputLayouts.clear();
 }
 
@@ -57,9 +61,26 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	world.Generate(m_deviceResources.get());
 	terrain.Create(m_deviceResources.get());
+
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // IF using Docking Branch
+
+	ImGui_ImplWin32_Init(window);
+	ImGui_ImplDX11_Init(m_deviceResources->GetD3DDevice(), m_deviceResources->GetD3DDeviceContext());
 }
 
 void Game::Tick() {
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
 	// DX::StepTimer will compute the elapsed time and call Update() for us
 	// We pass Update as a callback to Tick() because StepTimer can be set to a "fixed time" step mode, allowing us to call Update multiple time in a row if the framerate is too low (useful for physics stuffs)
 	m_timer.Tick([&]() { Update(m_timer); });
@@ -84,8 +105,8 @@ void Game::Update(DX::StepTimer const& timer) {
 	if (kb.Space) delta += camera.Up();
 	if (kb.LeftShift) delta -= camera.Up();
 	//delta = Vector3::TransformNormal(delta, camera.GetInverseViewMatrix());
-	camera.SetPosition(camera.GetPosition() + delta * 4.0f * dt);
-
+	camera.SetPosition(camera.GetPosition() + delta * 10.0f * dt);
+	
 	Quaternion rot = camera.GetRotation();
 	rot *= Quaternion::CreateFromAxisAngle(camera.Right(), -ms.y * dt * 0.2f);
 	rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x * dt * 0.2f);
@@ -119,6 +140,11 @@ void Game::Render() {
 	camera.Apply(m_deviceResources.get());
 
 	world.Draw(m_deviceResources.get());
+
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();

@@ -1,59 +1,68 @@
 #include "pch.h"
 #include "Chunk.h"
+#include "World.h"
 
-Chunk::Chunk(Vector3 pos) : m_mModel(Matrix::CreateTranslation(pos)) {
+void Chunk::SetPosition(World* world, int cx, int cy, int cz) {
+	m_mModel = Matrix::CreateTranslation(Vector3(cx, cy, cz) * CHUNK_SIZE);
+	m_cx = cx;
+	m_cy = cy;
+	m_cz = cz;
+	m_world = world;
 }
 
-void Chunk::Generate(const DeviceResources* devRes) {
-	for (int z = 0; z < CHUNK_SIZE_Z; z++) {
-		for (int x = 0; x < CHUNK_SIZE_X; x++) {
-			for (int y = 0; y < CHUNK_SIZE_Y; ++y) {
-				if (y < CHUNK_SIZE_Y / 2) SetCube(x, y, z, STONE);
-				else if (y < CHUNK_SIZE_Y - 1) SetCube(x, y, z, DIRT);
-				else SetCube(x, y, z, GRASS);
+void Chunk::Generate(const DeviceResources* deviceRes) {
+	for (int z = 0; z < CHUNK_SIZE; z++) {
+		for (int y = 0; y < CHUNK_SIZE; y++) {
+			for (int x = 0; x < CHUNK_SIZE; x++) {
+				PushCube(x, y, z);
 			}
 		}
 	}
 
-	for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
-		for (int y = 0; y < CHUNK_SIZE_Y; ++y) {
-			for (int x = 0; x < CHUNK_SIZE_X; ++x) {
-				PushCube(Vector3(x,y,z));
-			}
-		}
-	}
-
-	m_vBuffer.Create(devRes);
-	m_iBuffer.Create(devRes);
+	m_vBuffer.Create(deviceRes);
+	m_iBuffer.Create(deviceRes);
 }
 
-void Chunk::Draw(const DeviceResources* devRes) const {
-	m_vBuffer.Apply(devRes);
-	m_iBuffer.Apply(devRes);
-
-	devRes->GetD3DDeviceContext()->DrawIndexed(m_iBuffer.Size(), 0, 0);
+void Chunk::Draw(const DeviceResources* deviceRes) const {
+	if (m_iBuffer.Size() == 0) return;
+	m_vBuffer.Apply(deviceRes);
+	m_iBuffer.Apply(deviceRes);
+	deviceRes->GetD3DDeviceContext()->DrawIndexed(m_iBuffer.Size(), 0, 0);
 }
 
-void Chunk::PushCube(const Vector3& pos) {
-	const auto blockId = GetChunkCube(pos.x, pos.y, pos.z);
-	if (blockId == nullptr || *blockId == EMPTY) return;
+bool Chunk::ShouldRenderFace(int lx, int ly, int lz, int dx, int dy, int dz) const {
+	const auto blockId = m_world->GetCube(
+		m_cx * CHUNK_SIZE + lx + dx, 
+		m_cy * CHUNK_SIZE + ly + dy, 
+		m_cz * CHUNK_SIZE + lz + dz
+	);
+
+	if (!blockId || *blockId == EMPTY) return true;
+	return false;
+}
+
+BlockId* Chunk::GetChunkCube(int lx, int ly, int lz) {
+	if (lx < 0 || ly < 0 || lz < 0) return nullptr;
+	if (lx >= CHUNK_SIZE || ly >= CHUNK_SIZE || lz >= CHUNK_SIZE) return nullptr;
+	return &m_data[lx + ly * CHUNK_SIZE + lz * CHUNK_SIZE * CHUNK_SIZE];
+}
+
+void Chunk::PushCube(int lx, int ly, int lz) {
+	const auto blockId = GetChunkCube(lx, ly, lz);
+	if (!blockId || *blockId == EMPTY) return;
 	auto& blockData = BlockData::Get(*blockId);
-	if (blockData.id == EMPTY) return;
 
-	PushFace(Vector3::Zero + pos, Vector3::Up, Vector3::Right, blockData.texIdSide);
-	PushFace(Vector3::Right + pos, Vector3::Up, Vector3::Forward, blockData.texIdSide);
-	PushFace(Vector3::Right + Vector3::Forward + pos, Vector3::Up, Vector3::Left, blockData.texIdSide);
-	PushFace(Vector3::Forward + pos, Vector3::Up, Vector3::Backward, blockData.texIdSide);
-	PushFace(Vector3::Up + pos, Vector3::Forward, Vector3::Right, blockData.texIdTop);
-	PushFace(Vector3::Right + Vector3::Forward + pos, Vector3::Left, Vector3::Backward, blockData.texIdBottom);
+	Vector3 offset = Vector3(lx, ly, lz);
+	if (ShouldRenderFace(lx, ly, lz, 0, 0, 1)) PushFace(offset + Vector3::Zero, Vector3::Up, Vector3::Right, blockData.texIdSide);
+	if (ShouldRenderFace(lx, ly, lz, 1, 0, 0)) PushFace(offset + Vector3::Right, Vector3::Up, Vector3::Forward, blockData.texIdSide);
+	if (ShouldRenderFace(lx, ly, lz, 0, 0, -1)) PushFace(offset + Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, blockData.texIdSide);
+	if (ShouldRenderFace(lx, ly, lz, -1, 0, 0)) PushFace(offset + Vector3::Forward, Vector3::Up, Vector3::Backward, blockData.texIdSide);
+	if (ShouldRenderFace(lx, ly, lz, 0, 1, 0)) PushFace(offset + Vector3::Up, Vector3::Forward, Vector3::Right, blockData.texIdTop);
+	if (ShouldRenderFace(lx, ly, lz, 0, -1, 0)) PushFace(offset + Vector3::Right + Vector3::Forward, Vector3::Left, Vector3::Backward, blockData.texIdBottom);
 }
-
 
 void Chunk::PushFace(const Vector3& pos, const Vector3& up, const Vector3& right, int texId) {
-	const Vector3 normal = right.Cross(up);
-	if (!ShouldRenderFace(pos.x, pos.y, pos.z, normal.x, normal.y, normal.z)) return;
-
-	const Vector2 uv(
+	Vector2 uv(
 		texId % 16,
 		texId / 16
 	);
@@ -66,23 +75,6 @@ void Chunk::PushFace(const Vector3& pos, const Vector3& up, const Vector3& right
 
 	m_iBuffer.PushTriangle(bottomLeft, upLeft, upRight); //      tri0 (v0, v2, v3)
 	m_iBuffer.PushTriangle(bottomLeft, upRight, bottomRight); // tri1 (v0, v3, v2)
-}
-
-bool Chunk::ShouldRenderFace(int cx, int cy, int cz, int dx, int dy, int dz) {
-	const auto blockId = GetChunkCube(cx + dx, cy + dy, cz + dz);
-	return blockId == nullptr || *blockId == EMPTY;
-}
-
-void Chunk::SetCube(int cx, int cy, int cz, BlockId id) {
-	if (cx < 0 || cy < 0 || cz < 0) return;
-	if (cx >= CHUNK_SIZE_X || cy >= CHUNK_SIZE_Y || cz >= CHUNK_SIZE_Z) return;
-	m_data[cx + cy * CHUNK_SIZE_Y + cz * CHUNK_SIZE_Z * CHUNK_SIZE_Z] = id;
-}
-
-BlockId* Chunk::GetChunkCube(int cx, int cy, int cz) {
-	if (cx < 0 || cy < 0 || cz < 0) return nullptr;
-	if (cx >= CHUNK_SIZE_X || cy >= CHUNK_SIZE_Y || cz >= CHUNK_SIZE_Z) return nullptr;
-	return &m_data[cx + cy * CHUNK_SIZE_Y + cz * CHUNK_SIZE_Z * CHUNK_SIZE_Z];
 }
 
 const Matrix& Chunk::GetLocalMatrix() const {

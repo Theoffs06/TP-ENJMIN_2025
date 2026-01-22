@@ -128,6 +128,10 @@ void ToogleFullscren(HWND hWnd, Game* game) {
 // Windows procedure
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+		return true;
+
 	static bool s_in_sizemove = false;
 	static bool s_in_suspend = false;
 	static bool s_minimized = false;

@@ -1,32 +1,33 @@
 #pragma once
 
-#include <array>
-
-#include "Minicraft/Block.h"
 #include "Engine/Buffer.h"
 #include "Engine/VertexLayout.h"
+#include "Minicraft/Block.h"
+#include <array>
 
-#define CHUNK_SIZE_X 16
-#define CHUNK_SIZE_Y 16
-#define CHUNK_SIZE_Z 16
-#define CHUNK_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z
+class World;
 
 class Chunk {
-	std::array<BlockId, CHUNK_SIZE> m_data;
-	
-	Matrix m_mModel;
+public:
+	constexpr static int CHUNK_SIZE = 8;
+private:
+	std::array<BlockId, CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE> m_data;
 	VertexBuffer<VertexLayout_PositionUV> m_vBuffer;
 	IndexBuffer m_iBuffer;
+	Matrix m_mModel;
+	World* m_world;
+	int m_cx, m_cy, m_cz;
 public:
-	Chunk(Vector3 pos);
+	Chunk() = default;
 
-	void Generate(const DeviceResources* devRes);
-	void Draw(const DeviceResources* devRes) const;
-	void SetCube(int cx, int cy, int cz, BlockId id);
+	void SetPosition(World* world, int cx, int cy, int cz);
+	void Generate(const DeviceResources* deviceRes);
+	void Draw(const DeviceResources* deviceRes) const;
+
 	BlockId* GetChunkCube(int cx, int cy, int cz);
 	const Matrix& GetLocalMatrix() const;
 private:
-	void PushCube(const Vector3& pos);
+	bool ShouldRenderFace(int cx, int cy, int cz, int dx, int dy, int dz) const;
+	void PushCube(int cx, int cy, int cz);
 	void PushFace(const Vector3& pos, const Vector3& up, const Vector3& right, int texId);
-	bool ShouldRenderFace(int cx, int cy, int cz, int dx, int dy, int dz);
 };

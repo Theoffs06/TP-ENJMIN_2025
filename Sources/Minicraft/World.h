@@ -1,17 +1,16 @@
 #pragma once
 
 #include "Minicraft/Chunk.h"
-
-#define WORLD_SIZE_X 20
-#define WORLD_SIZE_Y 1
-#define WORLD_SIZE_Z 20
-#define WORLD_SIZE WORLD_SIZE_X * WORLD_SIZE_Y * WORLD_SIZE_Z
+#include "Minicraft/Block.h"
+#include <array>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 class World {
-	std::vector<Chunk> m_chunks;
+	constexpr static int WORLD_SIZE = 16;
+
+	std::array<Chunk, WORLD_SIZE * WORLD_SIZE * WORLD_SIZE> m_chunks;
 
 	struct ChunkData {
 		Matrix mModel;
@@ -21,4 +20,6 @@ class World {
 public:
 	void Generate(const DeviceResources* devRes);
 	void Draw(const DeviceResources* devRes);
+
+	BlockId* GetCube(int gx, int gy, int gz);
 };
