@@ -57,6 +57,8 @@ void Game::Initialize(HWND window, int width, int height) {
 	camera.UpdateAspectRatio((float) width / (float) height);
 	camera.Create(m_deviceResources.get());
 
+	m_commonStates = std::make_unique<CommonStates>(m_deviceResources->GetD3DDevice());
+
 	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
 
 	world.Generate(m_deviceResources.get());
@@ -151,7 +153,9 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
 
-	world.Draw(m_deviceResources.get());
+	world.Draw(m_deviceResources.get(), SP_OPAQUE);
+	// OMSetBlendState
+	world.Draw(m_deviceResources.get(), SP_TRANSPARENT);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

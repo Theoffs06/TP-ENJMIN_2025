@@ -19,7 +19,7 @@ class World {
 	ConstantBuffer<ChunkData> m_cbModel;
 public:
 	void Generate(const DeviceResources* devRes);
-	void Draw(const DeviceResources* devRes);
+	void Draw(const DeviceResources* devRes, ShaderPass shaderPass);
 	void ShowImGui(const DeviceResources* devRes);
 
 	BlockId* GetCube(int gx, int gy, int gz);

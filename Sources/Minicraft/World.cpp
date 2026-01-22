@@ -61,14 +61,14 @@ void World::Generate(const DeviceResources* devRes) {
 	m_cbModel.Create(devRes);
 }
 
-void World::Draw(const DeviceResources* devRes) {
+void World::Draw(const DeviceResources* devRes, ShaderPass shaderPass) {
 	m_cbModel.ApplyToVS(devRes, 0);
 
 	for (const auto& chunk : m_chunks) {
 		const Matrix model = chunk.GetLocalMatrix();
 		m_cbModel.data.mModel = model.Transpose();
 		m_cbModel.Update(devRes);
-		chunk.Draw(devRes);
+		chunk.Draw(devRes, shaderPass);
 	}
 }
 
