@@ -15,12 +15,11 @@ int perlinOctaveDirt = 2;
 float perlinHeightDirt = 8.0f;
 float perlinPersistenceDirt = 0.5;
 
-float waterHeight = 14.0f;
+float waterHeight = 11.0f;
 
 void World::Generate(const DeviceResources* devRes) {
-	siv::BasicPerlinNoise<float> perlin;
-	
-	const int GLOBAL_SIZE = WORLD_SIZE * Chunk::CHUNK_SIZE;
+	constexpr siv::BasicPerlinNoise<float> perlin;
+	constexpr int GLOBAL_SIZE = WORLD_SIZE * Chunk::CHUNK_SIZE;
 
 	for (int z = 0; z < GLOBAL_SIZE; ++z) {
 		for (int x = 0; x < GLOBAL_SIZE; ++x) {
@@ -61,7 +60,7 @@ void World::Generate(const DeviceResources* devRes) {
 	m_cbModel.Create(devRes);
 }
 
-void World::Draw(const DeviceResources* devRes, ShaderPass shaderPass) {
+void World::Draw(const DeviceResources* devRes, const ShaderPass shaderPass) {
 	m_cbModel.ApplyToVS(devRes, 0);
 
 	for (const auto& chunk : m_chunks) {
@@ -78,19 +77,19 @@ void World::ShowImGui(const DeviceResources* devRes) {
 	ImGui::InputInt("seed", &seed);
 
 	ImGui::Text("Stone Settings");
-	ImGui::DragFloat("perlinScaleStone", &perlinScaleStone, 0.01f);
-	ImGui::DragInt("perlinOctaveStone", &perlinOctaveStone, 0.1f);
+	ImGui::DragFloat("perlinScaleStone", &perlinScaleStone, 0.01f, 0);
+	ImGui::DragInt("perlinOctaveStone", &perlinOctaveStone, 0.1f, 0);
 	ImGui::DragFloat("perlinPersistenceStone", &perlinPersistenceStone, 0.1f, 0, 1);
-	ImGui::DragFloat("perlinHeightStone", &perlinHeightStone, 0.1f);
+	ImGui::DragFloat("perlinHeightStone", &perlinHeightStone, 0.1f, 0);
 	
 	ImGui::Text("Dirt Settings");
-	ImGui::DragFloat("perlinScaleDirt", &perlinScaleDirt, 0.01f);
-	ImGui::DragInt("perlinOctaveDirt", &perlinOctaveDirt, 0.1f);
+	ImGui::DragFloat("perlinScaleDirt", &perlinScaleDirt, 0.01f, 0);
+	ImGui::DragInt("perlinOctaveDirt", &perlinOctaveDirt, 0.1f, 0);
 	ImGui::DragFloat("perlinPersistenceDirt", &perlinPersistenceDirt, 0.1f, 0, 1);
-	ImGui::DragFloat("perlinHeightDirt", &perlinHeightDirt, 0.1f);
+	ImGui::DragFloat("perlinHeightDirt", &perlinHeightDirt, 0.1f, 0);
 
 	ImGui::Text("Others Settings");
-	ImGui::DragFloat("waterHeight", &waterHeight, 0.1f);
+	ImGui::DragFloat("waterHeight", &waterHeight, 0.1f, 0);
 
 	if (ImGui::Button("Generate!"))
 		Generate(devRes);

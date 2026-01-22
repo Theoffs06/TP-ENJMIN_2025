@@ -6,6 +6,6 @@ struct Input {
     float2 uv : TEXCOORD0;
 };
 
-float4 main(Input input) : SV_TARGET {
+float4 main(Input input) : SV_TARGET {    
     return tex.Sample(samplerState, input.uv);
 }

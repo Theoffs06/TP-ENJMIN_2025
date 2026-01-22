@@ -64,7 +64,6 @@ void Game::Initialize(HWND window, int width, int height) {
 	world.Generate(m_deviceResources.get());
 	terrain.Create(m_deviceResources.get());
 
-
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -153,9 +152,10 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
 
-	world.Draw(m_deviceResources.get(), SP_OPAQUE);
-	// OMSetBlendState
-	world.Draw(m_deviceResources.get(), SP_TRANSPARENT);
+	context->OMSetBlendState(m_commonStates->Opaque(), NULL, 0xffffffff);
+	world.Draw(m_deviceResources.get(), ShaderPass::SP_OPAQUE);
+	context->OMSetBlendState(m_commonStates->AlphaBlend(), NULL, 0xffffffff);
+	world.Draw(m_deviceResources.get(), ShaderPass::SP_TRANSPARENT);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

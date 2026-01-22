@@ -30,23 +30,31 @@ void Chunk::Generate(const DeviceResources* deviceRes) {
 	}
 }
 
-void Chunk::Draw(const DeviceResources* deviceRes, ShaderPass shaderPass) const {
+void Chunk::Draw(const DeviceResources* deviceRes, const ShaderPass shaderPass) const {
 	if (m_iBuffer[shaderPass].Size() == 0) return;
 	m_vBuffer[shaderPass].Apply(deviceRes);
 	m_iBuffer[shaderPass].Apply(deviceRes);
+
 	deviceRes->GetD3DDeviceContext()->DrawIndexed(m_iBuffer[shaderPass].Size(), 0, 0);
 }
 
 bool Chunk::ShouldRenderFace(int lx, int ly, int lz, int dx, int dy, int dz) const {
-	const auto blockIdNeighbor = m_world->GetCube(
+	const auto blockIdNeighbour = m_world->GetCube(
 		m_cx * CHUNK_SIZE + lx + dx, 
 		m_cy * CHUNK_SIZE + ly + dy, 
 		m_cz * CHUNK_SIZE + lz + dz
 	);
+	if (!blockIdNeighbour || *blockIdNeighbour == EMPTY) return true;
 
-	if (!blockIdNeighbor || *blockIdNeighbor == EMPTY) return true;
+	const auto blockId = m_world->GetCube(
+		m_cx * CHUNK_SIZE + lx,
+		m_cy * CHUNK_SIZE + ly,
+		m_cz * CHUNK_SIZE + lz
+	);
 
-	return false;
+	auto& blockData = BlockData::Get(*blockId);
+	auto& blockDataNeighbour = BlockData::Get(*blockIdNeighbour);
+	return blockData.pass == SP_OPAQUE && blockDataNeighbour.pass == SP_TRANSPARENT;
 }
 
 BlockId* Chunk::GetChunkCube(int lx, int ly, int lz) {
@@ -60,12 +68,23 @@ void Chunk::PushCube(int lx, int ly, int lz) {
 	if (!blockId || *blockId == EMPTY) return;
 	auto& blockData = BlockData::Get(*blockId);
 
-	Vector3 offset = Vector3(lx, ly, lz);
-	if (ShouldRenderFace(lx, ly, lz, 0, 0, 1)) PushFace(offset + Vector3::Zero, Vector3::Up, Vector3::Right, blockData.texIdSide, blockData.pass);
-	if (ShouldRenderFace(lx, ly, lz, 1, 0, 0)) PushFace(offset + Vector3::Right, Vector3::Up, Vector3::Forward, blockData.texIdSide, blockData.pass);
-	if (ShouldRenderFace(lx, ly, lz, 0, 0, -1)) PushFace(offset + Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, blockData.texIdSide, blockData.pass);
-	if (ShouldRenderFace(lx, ly, lz, -1, 0, 0)) PushFace(offset + Vector3::Forward, Vector3::Up, Vector3::Backward, blockData.texIdSide, blockData.pass);
-	if (ShouldRenderFace(lx, ly, lz, 0, 1, 0)) PushFace(offset + Vector3::Up, Vector3::Forward, Vector3::Right, blockData.texIdTop, blockData.pass);
+	float scaleY = 1.0f;
+	if (*blockId == WATER) {
+		const auto blockIdNeighbour = m_world->GetCube(
+			m_cx * CHUNK_SIZE + lx,
+			m_cy * CHUNK_SIZE + ly + 1,
+			m_cz * CHUNK_SIZE + lz
+		);
+
+		if (!blockIdNeighbour || *blockIdNeighbour == EMPTY) scaleY = 0.8f;
+	}
+
+	const auto offset = Vector3(lx, ly, lz);
+	if (ShouldRenderFace(lx, ly, lz, 0, 0, 1)) PushFace(offset + Vector3::Zero, Vector3::Up * scaleY, Vector3::Right, blockData.texIdSide, blockData.pass);
+	if (ShouldRenderFace(lx, ly, lz, 1, 0, 0)) PushFace(offset + Vector3::Right, Vector3::Up * scaleY, Vector3::Forward, blockData.texIdSide, blockData.pass);
+	if (ShouldRenderFace(lx, ly, lz, 0, 0, -1)) PushFace(offset + Vector3::Right + Vector3::Forward, Vector3::Up * scaleY, Vector3::Left, blockData.texIdSide, blockData.pass);
+	if (ShouldRenderFace(lx, ly, lz, -1, 0, 0)) PushFace(offset + Vector3::Forward, Vector3::Up * scaleY, Vector3::Backward, blockData.texIdSide, blockData.pass);
+	if (ShouldRenderFace(lx, ly, lz, 0, 1, 0)) PushFace(offset + Vector3::Up * scaleY, Vector3::Forward, Vector3::Right, blockData.texIdTop, blockData.pass);
 	if (ShouldRenderFace(lx, ly, lz, 0, -1, 0)) PushFace(offset + Vector3::Right + Vector3::Forward, Vector3::Left, Vector3::Backward, blockData.texIdBottom, blockData.pass);
 }
 

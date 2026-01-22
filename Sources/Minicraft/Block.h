@@ -4,7 +4,7 @@
 
 enum ShaderPass {
 	SP_OPAQUE,
-	SP_TRANSPARENT,
+	SP_TRANSPARENT, // water only for now
 
 	SP_COUNT
 };

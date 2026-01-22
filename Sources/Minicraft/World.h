@@ -8,7 +8,7 @@ using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 class World {
-	constexpr static int WORLD_SIZE = 16;
+	constexpr static int WORLD_SIZE = 32;
 
 	std::array<Chunk, WORLD_SIZE * WORLD_SIZE * WORLD_SIZE> m_chunks;
 
