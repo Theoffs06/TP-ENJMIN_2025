@@ -101,8 +101,7 @@ void Game::Update(DX::StepTimer const& timer) {
 
 	if (imGuiMode) {
 		m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
-
-		ImGui::ShowDemoWindow();
+		world.ShowImGui();
 	} 
 	else {
 		m_mouse->SetMode(Mouse::MODE_RELATIVE);

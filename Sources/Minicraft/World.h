@@ -20,6 +20,8 @@ class World {
 public:
 	void Generate(const DeviceResources* devRes);
 	void Draw(const DeviceResources* devRes);
+	void ShowImGui(const DeviceResources* devRes);
 
 	BlockId* GetCube(int gx, int gy, int gz);
+	void SetCube(int gx, int gy, int gz, BlockId id);
 };

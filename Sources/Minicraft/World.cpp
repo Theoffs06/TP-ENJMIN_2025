@@ -2,36 +2,37 @@
 #include "World.h"
 #include "PerlinNoise.hpp"
 
+float perlinScaleStone = 0.4f;
+int perlinOctaveStone = 1;
+float perlinHeightStone = 8.0f;
+float perlinScaleDirt = 0.1f;
+int perlinOctaveDirt = 1;
+float perlinHeightDirt = 8.0f;
+
+
 void World::Generate(const DeviceResources* devRes) {
 	siv::BasicPerlinNoise<float> perlin;
 
 	constexpr int GLOBAL_SIZE = WORLD_SIZE * Chunk::CHUNK_SIZE;
 
-	for (int z = 0; z < GLOBAL_SIZE; z++) {
-		for (int y = 0; y < GLOBAL_SIZE; y++) {
-			for (int x = 0; x < GLOBAL_SIZE; x++) {
-				float perlinStone = perlin.octave3D_01(x / (float) GLOBAL_SIZE * 0.3f, y / (float) GLOBAL_SIZE * 0.5f, z / (float) GLOBAL_SIZE * 0.3f, 4);
-				float perlinDirt = perlin.octave3D_01(x / (float)GLOBAL_SIZE * 0.3f, y / (float)GLOBAL_SIZE * 0.5f, z / (float) GLOBAL_SIZE * 0.3f, 4);
-				
-				perlinStone *= GLOBAL_SIZE;
-				perlinDirt *= GLOBAL_SIZE;
+	for (int z = 0; z < GLOBAL_SIZE; ++z) {
+		for (int x = 0; x < GLOBAL_SIZE; ++x) {
+			int yStone = perlin.octave2D_01(x * perlinScaleStone, z * perlinScaleStone, perlinOctaveStone) * perlinHeightStone;
+			int yDirt = yStone + perlin.octave2D_01(x * perlinScaleDirt, z * perlinScaleDirt, perlinOctaveDirt) * perlinHeightDirt;
 
-				if (y < perlinStone) {
-					*GetCube(x, y, z) = STONE;
-				}
-				else if (y < perlinStone + perlinDirt) {
-					*GetCube(x, y, z) = DIRT;
-				}
-				else if (y < perlinStone + perlinDirt + 1) {
-					*GetCube(x, y, z) = GRASS;
-				}
+			for (int y = 0; y < yStone; ++y) {
+				
+			}
+
+			for (int y = 0; y < yDirt; ++y) {
+
 			}
 		}
 	}
 
-	for (int z = 0; z < WORLD_SIZE; z++) {
-		for (int y = 0; y < WORLD_SIZE; y++) {
-			for (int x = 0; x < WORLD_SIZE; x++) {
+	for (int z = 0; z < WORLD_SIZE; ++z) {
+		for (int y = 0; y < WORLD_SIZE; ++y) {
+			for (int x = 0; x < WORLD_SIZE; ++x) {
 				m_chunks[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_SIZE].SetPosition(this, x, y, z);
 				m_chunks[x + y * WORLD_SIZE + z * WORLD_SIZE * WORLD_SIZE].Generate(devRes);
 			}
@@ -52,6 +53,23 @@ void World::Draw(const DeviceResources* devRes) {
 	}
 }
 
+void World::ShowImGui(const DeviceResources* devRes) {
+	ImGui::Begin("World gen");
+	ImGui::End();
+
+	ImGui::DragFloat("perlinScale", &perlinScaleStone);
+	ImGui::DragInt("perlinScale", &perlinOctaveStone);
+	ImGui::DragFloat("perlinScale", &perlinScaleStone);
+	ImGui::DragFloat("perlinScale", &perlinScaleStone);
+	ImGui::DragFloat("perlinScale", &perlinScaleStone);
+	ImGui::DragFloat("perlinScale", &perlinScaleStone);
+	ImGui::DragFloat("perlinScale", &perlinScaleStone);
+
+	if (ImGui::Button("Generate!")) {
+		Generate(devRes);
+	}
+}
+
 BlockId* World::GetCube(int gx, int gy, int gz) {
 	const int cx = gx / Chunk::CHUNK_SIZE;
 	const int cy = gy / Chunk::CHUNK_SIZE;
@@ -64,4 +82,8 @@ BlockId* World::GetCube(int gx, int gy, int gz) {
 	if (cx >= WORLD_SIZE || cy >= WORLD_SIZE || cz >= WORLD_SIZE) return nullptr;
 
 	return m_chunks[cx + cy * WORLD_SIZE + cz * WORLD_SIZE * WORLD_SIZE].GetChunkCube(lx, ly, lz);
+}
+
+void World::SetCube(int gx, int gy, int gz, BlockId id) {
+	auto 
 }
