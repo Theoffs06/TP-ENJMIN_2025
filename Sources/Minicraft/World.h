@@ -1,33 +1,24 @@
 #pragma once
 
-#include "Block.h"
-#include "Cube.h"
-#include <array>
+#include "Minicraft/Chunk.h"
 
-#include "Minicraft/Cube.h"
-#include "Minicraft/Block.h"
-
-#define WORLD_SIZE_X 16
-#define WORLD_SIZE_Y 16
-#define WORLD_SIZE_Z 16
+#define WORLD_SIZE_X 20
+#define WORLD_SIZE_Y 1
+#define WORLD_SIZE_Z 20
 #define WORLD_SIZE WORLD_SIZE_X * WORLD_SIZE_Y * WORLD_SIZE_Z
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 class World {
-	std::array<BlockId, WORLD_SIZE> m_data;
-	std::vector<Cube> m_cubes;
+	std::vector<Chunk> m_chunks;
 
-	struct CubeData {
+	struct ChunkData {
 		Matrix mModel;
 	};
 
-	ConstantBuffer<CubeData> m_cbModel;
+	ConstantBuffer<ChunkData> m_cbModel;
 public:
 	void Generate(const DeviceResources* devRes);
 	void Draw(const DeviceResources* devRes);
-
-	BlockId* GetCube(int gx, int gy, int gz);
-	void SetCube(int gx, int gy, int gz, BlockId id);
 };
