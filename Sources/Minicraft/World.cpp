@@ -5,15 +5,47 @@
 
 using namespace DirectX::SimpleMath;
 
+float perlinScaleStone = 0.02f;
+int perlinOctaveStone = 4;
+float perlinHeightStone = 14.0f;
+float perlinScaleDirt = 0.07f;
+int perlinOctaveDirt = 2;
+float perlinHeightDirt = 8.0f;
+float waterHeight = 14.0f;
+
 void World::Generate(DeviceResources* res) {
 	siv::BasicPerlinNoise<float> perlin;
 	const int GLOBAL_SIZE = WORLD_SIZE * Chunk::CHUNK_SIZE;
+
 	for (int z = 0; z < GLOBAL_SIZE; z++) {
-		for (int y = 0; y < GLOBAL_SIZE; y++) {
-			for (int x = 0; x < GLOBAL_SIZE; x++) {
+		for (int x = 0; x < GLOBAL_SIZE; x++) {
+			for (int y = 0; y < GLOBAL_SIZE; y++)
+				SetCube(x, y, z, EMPTY);
+
+			int yStone = perlin.octave2D_01(x * perlinScaleStone, z * perlinScaleStone, perlinOctaveStone) * perlinHeightStone;
+			int yDirt = yStone + perlin.octave2D_01(x * perlinScaleDirt, z * perlinScaleDirt, perlinOctaveDirt) * perlinHeightDirt;
+
+			for (int y = 0; y < yStone; y++) {
+				SetCube(x, y, z, STONE);
+			}
+
+			for (int y = yStone; y < yDirt; y++) {
+				SetCube(x, y, z, DIRT);
+			}
+
+			if ((yDirt + 1) < waterHeight) {
+				for (int y = yDirt; y < waterHeight; y++) {
+					SetCube(x, y, z, WATER);
+				}
+			}
+			else {
+				SetCube(x, yDirt, z, GRASS);
+			}
+
+			for (int y = 0; y < GLOBAL_SIZE; y++) {
 				float test = perlin.octave3D_01(x / (float)GLOBAL_SIZE * 0.8f, y / (float)GLOBAL_SIZE * 0.8f, z / (float)GLOBAL_SIZE * 0.8f, 5);
 				if (test >  0.3f && test < 0.6f) {
-					*GetCube(x, y, z) = LOG;
+					SetCube(x, y, z, EMPTY);
 				}
 			}
 		}
@@ -69,13 +101,24 @@ BlockId* World::GetCube(int gx, int gy, int gz) {
 	return chunks[cx + cy * WORLD_SIZE + cz * WORLD_SIZE * WORLD_SIZE].GetChunkCube(lx, ly, lz);
 }
 
-
 void World::SetCube(int gx, int gy, int gz, BlockId id) {
-	/*if (gx < 0) return;
-	if (gy < 0) return;
-	if (gz < 0) return;
-	if (gx >= WORLD_SIZE) return;
-	if (gy >= WORLD_SIZE) return;
-	if (gz >= WORLD_SIZE) return;
-	data[gx + gy * WORLD_SIZE + gz * WORLD_SIZE * WORLD_SIZE] = id;*/
+	auto cube = GetCube(gx, gy, gz);
+	if (!cube) return;
+	*cube = id;
+}
+
+void World::ShowImGui(DeviceResources* res) {
+	ImGui::Begin("World gen");
+
+	ImGui::DragFloat("perlinScaleStone", &perlinScaleStone, 0.01f);
+	ImGui::DragInt("perlinOctaveStone", &perlinOctaveStone, 0.1f);
+	ImGui::DragFloat("perlinHeightStone", &perlinHeightStone, 0.1f);
+	ImGui::DragFloat("perlinScaleDirt", &perlinScaleDirt, 0.01f);
+	ImGui::DragInt("perlinOctaveDirt", &perlinOctaveDirt, 0.1f);
+	ImGui::DragFloat("perlinHeightDirt", &perlinHeightDirt, 0.1f);
+
+	if (ImGui::Button("Generate!"))
+		Generate(res);
+
+	ImGui::End();
 }

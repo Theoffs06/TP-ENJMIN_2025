@@ -19,4 +19,6 @@ public:
 
 	BlockId* GetCube(int gx, int gy, int gz);
 	void SetCube(int gx, int gy, int gz, BlockId id);
+
+	void ShowImGui(DeviceResources* res);
 };
