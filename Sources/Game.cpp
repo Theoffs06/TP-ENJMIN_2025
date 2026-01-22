@@ -105,7 +105,7 @@ void Game::Update(DX::StepTimer const& timer) {
 	if (kb.Space) delta += camera.Up();
 	if (kb.LeftShift) delta -= camera.Up();
 	//delta = Vector3::TransformNormal(delta, camera.GetInverseViewMatrix());
-	camera.SetPosition(camera.GetPosition() + delta * 10.0f * dt);
+	camera.SetPosition(camera.GetPosition() + delta * 70.0f * dt);
 	
 	Quaternion rot = camera.GetRotation();
 	rot *= Quaternion::CreateFromAxisAngle(camera.Right(), -ms.y * dt * 0.2f);

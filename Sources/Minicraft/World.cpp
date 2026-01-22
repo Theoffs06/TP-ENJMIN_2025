@@ -10,10 +10,20 @@ void World::Generate(const DeviceResources* devRes) {
 	for (int z = 0; z < GLOBAL_SIZE; z++) {
 		for (int y = 0; y < GLOBAL_SIZE; y++) {
 			for (int x = 0; x < GLOBAL_SIZE; x++) {
-				const float test = perlin.octave3D_01(x / (float) GLOBAL_SIZE * 0.8f, y / (float) GLOBAL_SIZE * 0.8f, z / (float) GLOBAL_SIZE * 0.8f, 5);
+				float perlinStone = perlin.octave3D_01(x / (float) GLOBAL_SIZE * 0.3f, y / (float) GLOBAL_SIZE * 0.5f, z / (float) GLOBAL_SIZE * 0.3f, 4);
+				float perlinDirt = perlin.octave3D_01(x / (float)GLOBAL_SIZE * 0.3f, y / (float)GLOBAL_SIZE * 0.5f, z / (float) GLOBAL_SIZE * 0.3f, 4);
 				
-				if (test >  0.3f && test < 0.6f) {
-					*GetCube(x, y, z) = LOG;
+				perlinStone *= GLOBAL_SIZE;
+				perlinDirt *= GLOBAL_SIZE;
+
+				if (y < perlinStone) {
+					*GetCube(x, y, z) = STONE;
+				}
+				else if (y < perlinStone + perlinDirt) {
+					*GetCube(x, y, z) = DIRT;
+				}
+				else if (y < perlinStone + perlinDirt + 1) {
+					*GetCube(x, y, z) = GRASS;
 				}
 			}
 		}
