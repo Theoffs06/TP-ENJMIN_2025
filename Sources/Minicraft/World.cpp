@@ -2,30 +2,49 @@
 #include "World.h"
 #include "PerlinNoise.hpp"
 
-float perlinScaleStone = 0.4f;
-int perlinOctaveStone = 1;
-float perlinHeightStone = 8.0f;
-float perlinScaleDirt = 0.1f;
-int perlinOctaveDirt = 1;
-float perlinHeightDirt = 8.0f;
+// World generation parameters
+int seed = 192006;
 
+float perlinScaleStone = 0.02f;
+int perlinOctaveStone = 4;
+float perlinHeightStone = 14.0f;
+float perlinPersistenceStone = 0.5;
+
+float perlinScaleDirt = 0.07f;
+int perlinOctaveDirt = 2;
+float perlinHeightDirt = 8.0f;
+float perlinPersistenceDirt = 0.5;
+
+float waterHeight = 14.0f;
 
 void World::Generate(const DeviceResources* devRes) {
 	siv::BasicPerlinNoise<float> perlin;
-
-	constexpr int GLOBAL_SIZE = WORLD_SIZE * Chunk::CHUNK_SIZE;
+	
+	const int GLOBAL_SIZE = WORLD_SIZE * Chunk::CHUNK_SIZE;
 
 	for (int z = 0; z < GLOBAL_SIZE; ++z) {
 		for (int x = 0; x < GLOBAL_SIZE; ++x) {
-			int yStone = perlin.octave2D_01(x * perlinScaleStone, z * perlinScaleStone, perlinOctaveStone) * perlinHeightStone;
-			int yDirt = yStone + perlin.octave2D_01(x * perlinScaleDirt, z * perlinScaleDirt, perlinOctaveDirt) * perlinHeightDirt;
+			for (int y = 0; y < GLOBAL_SIZE; ++y)
+				SetCube(x, y, z, EMPTY);
+
+			const int yStone = perlin.octave2D_01(x * perlinScaleStone, z * perlinScaleStone, perlinOctaveStone, perlinPersistenceStone) * perlinHeightStone;
+			const int yDirt = yStone + perlin.octave2D_01(x * perlinScaleDirt, z * perlinScaleDirt, perlinOctaveDirt, perlinPersistenceDirt) * perlinHeightDirt;
 
 			for (int y = 0; y < yStone; ++y) {
-				
+				SetCube(x, y, z, STONE);
 			}
 
-			for (int y = 0; y < yDirt; ++y) {
+			for (int y = yStone; y < yDirt; ++y) {
+				SetCube(x, y, z, DIRT);
+			}
 
+			if (yDirt + 1 < waterHeight) {
+				for (int y = yDirt; y < waterHeight; ++y) {
+					SetCube(x, y, z, WATER);
+				}
+			}
+			else {
+				SetCube(x, yDirt, z, GRASS);
 			}
 		}
 	}
@@ -55,20 +74,30 @@ void World::Draw(const DeviceResources* devRes) {
 
 void World::ShowImGui(const DeviceResources* devRes) {
 	ImGui::Begin("World gen");
-	ImGui::End();
 
-	ImGui::DragFloat("perlinScale", &perlinScaleStone);
-	ImGui::DragInt("perlinScale", &perlinOctaveStone);
-	ImGui::DragFloat("perlinScale", &perlinScaleStone);
-	ImGui::DragFloat("perlinScale", &perlinScaleStone);
-	ImGui::DragFloat("perlinScale", &perlinScaleStone);
-	ImGui::DragFloat("perlinScale", &perlinScaleStone);
-	ImGui::DragFloat("perlinScale", &perlinScaleStone);
+	ImGui::InputInt("seed", &seed);
 
-	if (ImGui::Button("Generate!")) {
+	ImGui::Text("Stone Settings");
+	ImGui::DragFloat("perlinScaleStone", &perlinScaleStone, 0.01f);
+	ImGui::DragInt("perlinOctaveStone", &perlinOctaveStone, 0.1f);
+	ImGui::DragFloat("perlinPersistenceStone", &perlinPersistenceStone, 0.1f, 0, 1);
+	ImGui::DragFloat("perlinHeightStone", &perlinHeightStone, 0.1f);
+	
+	ImGui::Text("Dirt Settings");
+	ImGui::DragFloat("perlinScaleDirt", &perlinScaleDirt, 0.01f);
+	ImGui::DragInt("perlinOctaveDirt", &perlinOctaveDirt, 0.1f);
+	ImGui::DragFloat("perlinPersistenceDirt", &perlinPersistenceDirt, 0.1f, 0, 1);
+	ImGui::DragFloat("perlinHeightDirt", &perlinHeightDirt, 0.1f);
+
+	ImGui::Text("Others Settings");
+	ImGui::DragFloat("waterHeight", &waterHeight, 0.1f);
+
+	if (ImGui::Button("Generate!"))
 		Generate(devRes);
-	}
+
+	ImGui::End();
 }
+
 
 BlockId* World::GetCube(int gx, int gy, int gz) {
 	const int cx = gx / Chunk::CHUNK_SIZE;
@@ -85,5 +114,7 @@ BlockId* World::GetCube(int gx, int gy, int gz) {
 }
 
 void World::SetCube(int gx, int gy, int gz, BlockId id) {
-	auto 
+	auto cube = GetCube(gx, gy, gz);
+	if (!cube) return;
+	*cube = id;
 }
