@@ -72,14 +72,14 @@ void World::Generate(DeviceResources* res) {
 	cbModel.Create(res);
 }
 
-void World::Draw(DeviceResources* res) {
+void World::Draw(DeviceResources* res, ShaderPass pass) {
 	cbModel.ApplyToVS(res, 0);
 
 	for (auto& chunk : chunks) {
 		Matrix model = chunk.GetLocalMatrix();
 		cbModel.data.mModel = model.Transpose();
 		cbModel.Update(res);
-		chunk.Draw(res);
+		chunk.Draw(res, pass);
 	}
 }
 

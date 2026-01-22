@@ -13,8 +13,8 @@ public:
 	constexpr static int CHUNK_SIZE = 8;
 private:
 	std::array<BlockId, CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE> data;
-	VertexBuffer<VertexLayout_PositionUV> vBuffer;
-	IndexBuffer iBuffer;
+	VertexBuffer<VertexLayout_PositionUV> vBuffer[SP_COUNT];
+	IndexBuffer iBuffer[SP_COUNT];
 	Matrix mModel;
 	World* world;
 	int cx, cy, cz;
@@ -23,7 +23,7 @@ public:
 
 	void SetPosition(World* world, int cx, int cy, int cz);
 	void Generate(DeviceResources* deviceRes);
-	void Draw(DeviceResources* deviceRes);
+	void Draw(DeviceResources* deviceRes, ShaderPass pass);
 	const Matrix& GetLocalMatrix() const { return mModel; }
 
 	BlockId* GetChunkCube(int cx, int cy, int cz);

@@ -25,7 +25,7 @@ void Chunk::Generate(DeviceResources* deviceRes) {
 	iBuffer.Create(deviceRes);
 }
 
-void Chunk::Draw(DeviceResources* deviceRes) {
+void Chunk::Draw(DeviceResources* deviceRes, ShaderPass pass) {
 	if (iBuffer.Size() == 0) return;
 	vBuffer.Apply(deviceRes);
 	iBuffer.Apply(deviceRes);

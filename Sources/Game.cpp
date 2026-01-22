@@ -157,7 +157,9 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
 
-	world.Draw(m_deviceResources.get());
+	world.Draw(m_deviceResources.get(), ShaderPass::SP_OPAQUE);
+	// OMSetBlendState
+	world.Draw(m_deviceResources.get(), ShaderPass::SP_TRANSPARENT);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
