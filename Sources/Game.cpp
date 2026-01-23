@@ -59,7 +59,7 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	m_commonStates = std::make_unique<CommonStates>(m_deviceResources->GetD3DDevice());
 
-	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
+	GenerateInputLayout<VertexLayout_PositionNormalUV>(m_deviceResources.get(), &basicShader);
 
 	world.Generate(m_deviceResources.get());
 	terrain.Create(m_deviceResources.get());
@@ -146,7 +146,7 @@ void Game::Render() {
 	
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
-	ApplyInputLayout<VertexLayout_PositionUV>(m_deviceResources.get());
+	ApplyInputLayout<VertexLayout_PositionNormalUV>(m_deviceResources.get());
 
 	basicShader.Apply(m_deviceResources.get());
 	terrain.Apply(m_deviceResources.get());

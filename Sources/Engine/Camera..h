@@ -7,7 +7,7 @@ using namespace DirectX::SimpleMath;
 
 class Camera {
 	float m_near = 0.01f;
-	float m_far = 100.0f;
+	float m_far = 500.0f;
 	float m_fov = 60.0f;
 
 	Quaternion m_rotation = Quaternion::Identity;

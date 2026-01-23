@@ -12,7 +12,7 @@ public:
 	constexpr static int CHUNK_SIZE = 8;
 private:
 	std::array<BlockId, CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE> m_data;
-	VertexBuffer<VertexLayout_PositionUV> m_vBuffer[SP_COUNT];
+	VertexBuffer<VertexLayout_PositionNormalUV> m_vBuffer[SP_COUNT];
 	IndexBuffer m_iBuffer[SP_COUNT];
 	Matrix m_mModel;
 	World* m_world;

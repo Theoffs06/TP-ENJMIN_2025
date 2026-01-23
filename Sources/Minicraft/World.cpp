@@ -7,16 +7,16 @@
 int seed = 192006;
 
 // Stone Parameters
-float perlinScaleStone = 0.02f;
-int perlinOctaveStone = 4;
-float perlinHeightStone = 14.0f;
+float perlinScaleStone = 0.005f;
+int perlinOctaveStone = 3;
 float perlinPersistenceStone = 0.5;
+float perlinHeightStone = 50.0f;
 
 // Dirt Parameters
 float perlinScaleDirt = 0.07f;
-int perlinOctaveDirt = 2;
-float perlinHeightDirt = 8.0f;
+int perlinOctaveDirt = 1;
 float perlinPersistenceDirt = 0.5;
+float perlinHeightDirt = 8.0f;
 
 // Ores Parameters
 float coalChance = 0.1f;
@@ -25,9 +25,13 @@ float goldChance = 0.005f;
 float redstoneChance = 0.003f;
 float diamondChance = 0.001f;
 
-// Others Parameters
+// Tree Parameters
+int treeMinSize = 4;
+int treeMaxSize = 8;
 float treeChance = 0.001f;
-float waterHeight = 11.0f;
+
+// Others Parameters
+float waterHeight = 15.0f;
 
 void World::Generate(const DeviceResources* devRes) {
 	constexpr siv::BasicPerlinNoise<float> perlin;
@@ -38,9 +42,14 @@ void World::Generate(const DeviceResources* devRes) {
 
 	for (int z = 0; z < GLOBAL_SIZE; ++z) {
 		for (int x = 0; x < GLOBAL_SIZE; ++x) {
-			for (int y = 0; y < GLOBAL_SIZE; ++y)
+			for (int y = 0; y < GLOBAL_SIZE; ++y) {
 				SetCube(x, y, z, EMPTY);
+			}
+		}
+	}
 
+	for (int z = 0; z < GLOBAL_SIZE; ++z) {
+		for (int x = 0; x < GLOBAL_SIZE; ++x) {
 			const int yStone = perlin.octave2D_01(x * perlinScaleStone + randomOffset, z * perlinScaleStone + randomOffset, perlinOctaveStone, perlinPersistenceStone) * perlinHeightStone;
 			const int yDirt = yStone + perlin.octave2D_01(x * perlinScaleDirt + randomOffset, z * perlinScaleDirt + randomOffset, perlinOctaveDirt, perlinPersistenceDirt) * perlinHeightDirt;
 
@@ -71,8 +80,22 @@ void World::Generate(const DeviceResources* devRes) {
 				SetCube(x, yDirt, z, GRASS);
 
 				if (Random::Chance(treeChance)) {
-					for (int y = yDirt + 1; y < yDirt + Random::RangeInt(3, 5); ++y) {
+					const int treeSize = Random::RangeInt(treeMinSize, treeMaxSize);
+
+					for (int y = yDirt + 1; y < yDirt + treeSize; ++y) {
 						SetCube(x, y, z, LOG);
+					}
+
+					for (int y = yDirt + treeSize; y < yDirt + treeSize + 3; ++y) {
+						SetCube(x, y, z, TNT);
+						SetCube(x + 1, y, z, TNT);
+						SetCube(x - 1, y, z, TNT);
+						SetCube(x, y, z + 1, TNT);
+						SetCube(x, y, z - 1, TNT);
+						SetCube(x + 1, y, z + 1, TNT);
+						SetCube(x - 1, y, z - 1, TNT);
+						SetCube(x + 1, y, z - 1, TNT);
+						SetCube(x - 1, y, z + 1, TNT);
 					}
 				}
 			}
@@ -132,8 +155,13 @@ void World::ShowImGui(const DeviceResources* devRes) {
 		ImGui::DragFloat("Diamond Chance", &diamondChance, 0.1f, 0, 1);
 	}
 
-	if (ImGui::CollapsingHeader("Others Settings")) {
+	if (ImGui::CollapsingHeader("Tree Settings")) {
+		ImGui::DragInt("Tree Min Height", &treeMinSize, 0.1f, 0, 10);
+		ImGui::DragInt("Tree Max Height", &treeMaxSize, 0.1f, treeMinSize, 10);
 		ImGui::DragFloat("Tree Chance", &treeChance, 0.1f, 0, 1);
+	}
+
+	if (ImGui::CollapsingHeader("Others Settings")) {
 		ImGui::DragFloat("Water Height", &waterHeight, 0.1f, 0);
 	}
 
