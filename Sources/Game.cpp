@@ -10,6 +10,7 @@
 #include "Engine/Shader.h"
 #include "Engine/Texture.h"
 #include "Engine/Camera..h"
+#include "Minicraft/Player.h"
 #include "Minicraft/World.h"
 
 extern void ExitGame() noexcept;
@@ -24,6 +25,8 @@ Shader basicShader(L"basic");
 Texture terrain(L"terrain");
 Camera camera(60, 1.0);
 World world;
+
+Player player(camera, world);
 
 
 Shader lineShader(L"Line");
@@ -105,37 +108,22 @@ bool imGuiMode = false;
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
+	auto const pad = m_gamePad->GetState(0);
 	const double dt = timer.GetElapsedSeconds();
 
+	if (kb.Escape) ExitGame();
 	if (kb.IsKeyDown(Keyboard::P)) imGuiMode = true;
 	if (kb.IsKeyDown(Keyboard::M)) imGuiMode = false;
 
 	if (imGuiMode) {
 		m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
 		world.ShowImGui(m_deviceResources.get());
+		player.ShowImGUI();
 	} 
 	else {
 		m_mouse->SetMode(Mouse::MODE_RELATIVE);
-	
-		Vector3 delta = Vector3::Zero;
-		if (kb.Z) delta += camera.Forward();
-		if (kb.S) delta -= camera.Forward();
-		if (kb.Q) delta -= camera.Right();
-		if (kb.D) delta += camera.Right();
-		if (kb.Space) delta += camera.Up();
-		if (kb.LeftShift) delta -= camera.Up();
-		//delta = Vector3::TransformNormal(delta, camera.GetInverseViewMatrix());
-		camera.SetPosition(camera.GetPosition() + delta * 70.0f * dt);
-	
-		Quaternion rot = camera.GetRotation();
-		rot *= Quaternion::CreateFromAxisAngle(camera.Right(), -ms.y * dt * 0.2f);
-		rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x * dt * 0.2f);
-		camera.SetRotation(rot);
+		player.Update(dt, kb, ms);
 	}
-	
-	if (kb.Escape) ExitGame();
-
-	auto const pad = m_gamePad->GetState(0);
 }
 
 // Draws the scene.
@@ -168,14 +156,12 @@ void Game::Render() {
 	context->OMSetBlendState(m_commonStates->AlphaBlend(), nullptr, 0xffffffff);
 	world.Draw(m_deviceResources.get(), SP_TRANSPARENT);
 
-
 	context->OMSetBlendState(m_commonStates->Opaque(), NULL, 0xffffffff);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	ApplyInputLayout<VertexLayout_PositionColor>(m_deviceResources.get());
 	lineShader.Apply(m_deviceResources.get());
 	debugLine.Apply(m_deviceResources.get());
 	context->Draw(2, 0);
-
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

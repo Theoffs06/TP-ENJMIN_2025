@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "World.h"
+
+#include <algorithm>
 #include "PerlinNoise.hpp"
 #include "Engine/Random.h"
 
@@ -197,6 +199,8 @@ void World::ShowImGui(const DeviceResources* devRes) {
 	}
 
 	if (ImGui::CollapsingHeader("Tree Settings")) {
+		treeMaxSize = std::max(treeMaxSize, treeMinSize);
+
 		ImGui::DragInt("Tree Min Height", &treeMinSize, 0.1f, 0, 10);
 		ImGui::DragInt("Tree Max Height", &treeMaxSize, 0.1f, treeMinSize, 10);
 		ImGui::DragFloat("Tree Chance", &treeChance, 0.1f, 0, 1);
