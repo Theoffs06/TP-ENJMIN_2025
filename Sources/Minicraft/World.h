@@ -14,6 +14,7 @@ class World {
 	};
 	ConstantBuffer<CubeData> cbModel;
 public:
+	bool regen;
 	void Generate();
 	void CreateMesh(DeviceResources* res);
 	void Draw(DeviceResources* res, ShaderPass pass);
