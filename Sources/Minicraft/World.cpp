@@ -18,6 +18,11 @@ int perlinOctaveDirt = 1;
 float perlinPersistenceDirt = 0.5;
 float perlinHeightDirt = 8.0f;
 
+// Cave Parameters
+float perlinScaleCave = 0.005f;
+int perlinOctaveCave = 3;
+float perlinPersistenceCave = 0.5;
+
 // Ores Parameters
 float coalChance = 0.1f;
 float ironChance = 0.01f;
@@ -50,8 +55,19 @@ void World::Generate(const DeviceResources* devRes) {
 
 	for (int z = 0; z < GLOBAL_SIZE; ++z) {
 		for (int x = 0; x < GLOBAL_SIZE; ++x) {
-			const int yStone = perlin.octave2D_01(x * perlinScaleStone + randomOffset, z * perlinScaleStone + randomOffset, perlinOctaveStone, perlinPersistenceStone) * perlinHeightStone;
-			const int yDirt = yStone + perlin.octave2D_01(x * perlinScaleDirt + randomOffset, z * perlinScaleDirt + randomOffset, perlinOctaveDirt, perlinPersistenceDirt) * perlinHeightDirt;
+			const int yStone = perlin.octave2D_01(
+				x * perlinScaleStone + randomOffset, 
+				z * perlinScaleStone + randomOffset, 
+				perlinOctaveStone, 
+				perlinPersistenceStone
+			) * perlinHeightStone;
+
+			const int yDirt = yStone + perlin.octave2D_01(
+				x * perlinScaleDirt + randomOffset,
+				z * perlinScaleDirt + randomOffset, 
+				perlinOctaveDirt, 
+				perlinPersistenceDirt
+			) * perlinHeightDirt;
 
 			for (int y = 0; y < yStone; ++y) {
 				if (Random::Chance(diamondChance)) SetCube(x, y, z, DIAMOND_ORE);
@@ -102,6 +118,25 @@ void World::Generate(const DeviceResources* devRes) {
 		}
 	}
 
+	for (int z = 0; z < GLOBAL_SIZE; ++z) {
+		for (int x = 0; x < GLOBAL_SIZE; ++x) {
+			for (int y = 0; y < GLOBAL_SIZE; ++y) {
+				const float perlinCave = perlin.octave3D_01(
+					x * perlinScaleCave + randomOffset / (float) GLOBAL_SIZE, 
+					y * perlinScaleCave + randomOffset / (float) GLOBAL_SIZE, 
+					z * perlinScaleStone + randomOffset / (float) GLOBAL_SIZE,
+					perlinOctaveCave,
+					perlinPersistenceCave
+				);
+				
+				if (perlinCave > 0.3f && perlinCave < 0.6f) {
+					SetCube(x, y, z, EMPTY);
+				}
+			}
+		}
+	}
+
+
 	for (int z = 0; z < WORLD_SIZE; ++z) {
 		for (int y = 0; y < WORLD_SIZE; ++y) {
 			for (int x = 0; x < WORLD_SIZE; ++x) {
@@ -145,6 +180,12 @@ void World::ShowImGui(const DeviceResources* devRes) {
 		ImGui::DragInt("Perlin Octave Dirt", &perlinOctaveDirt, 0.1f, 0);
 		ImGui::DragFloat("Perlin Persistence Dirt", &perlinPersistenceDirt, 0.1f, 0, 1);
 		ImGui::DragFloat("Perlin Height Dirt", &perlinHeightDirt, 0.1f, 0);
+	}
+
+	if (ImGui::CollapsingHeader("Cave Settings")) {
+		ImGui::DragFloat("Perlin Scale Cave", &perlinScaleCave, 0.01f, 0);
+		ImGui::DragInt("Perlin Octave Cave", &perlinOctaveCave, 0.1f, 0);
+		ImGui::DragFloat("Perlin Persistence Cave", &perlinPersistenceCave, 0.1f, 0, 1);
 	}
 
 	if (ImGui::CollapsingHeader("Ores Settings")) {
