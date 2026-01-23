@@ -13,6 +13,7 @@
 #include "Engine/Light.h"
 #include "Minicraft/Player.h"
 #include "Minicraft/World.h"
+#include "Minicraft/Player.h"
 
 extern void ExitGame() noexcept;
 
@@ -26,7 +27,6 @@ Shader basicShader(L"basic");
 Texture terrain(L"terrain");
 Camera camera(60, 1.0);
 Light light({ -1, -1, -1 }, { 0.2f, 0.15f, 0.25f }, { 0.98f, 0.87f, 0.34f });
-
 World world;
 
 Player player(camera, world);
@@ -46,92 +46,6 @@ Game::~Game() {
 	ImGui::DestroyContext();
 
 	g_inputLayouts.clear();
-}
-
-std::vector<std::array<int, 3>> Raycast(const Vector3& pos, const Vector3& dir, float maxDistance) {
-	std::map<float, std::array<int, 3>> cubes;
-
-	if (dir.x != 0) {
-		const float deltaY = dir.y / dir.x;
-		const float deltaZ = dir.z / dir.x;
-		const float offsetY = pos.y - pos.x * deltaY;
-		const float offsetZ = pos.z - pos.x * deltaZ;
-
-		float currentX = dir.x > 0 ? ceil(pos.x) : floor(pos.x);
-		do {
-			Vector3 collision = Vector3(
-				currentX,
-				offsetY + currentX * deltaY,
-				offsetZ + currentX * deltaZ
-			);
-
-			float dist = Vector3::Distance(pos, collision);
-			if (dist > maxDistance) break;
-			cubes[dist] = {
-				(int) (currentX - (dir.x < 0 ? 1 : 0)),
-				(int) floor(collision.y),
-				(int) ceil(collision.z)
-			};
-
-			currentX += dir.x > 0 ? 1 : -1;
-		} while (true);
-	}
-
-	if (dir.y != 0) {
-		const float deltaX = dir.x / dir.y;
-		const float deltaZ = dir.z / dir.y;
-		const float offsetX = pos.x - pos.y * deltaX;
-		const float offsetZ = pos.z - pos.y * deltaZ;
-
-		float currentY = (dir.y > 0) ? ceil(pos.y) : floor(pos.y);
-		do {
-			Vector3 collision = Vector3(
-				offsetX + currentY * deltaX,
-				currentY,
-				offsetZ + currentY * deltaZ
-			);
-
-			float dist = Vector3::Distance(pos, collision);
-			if (dist > maxDistance) break;
-			cubes[dist] = {
-				(int) floor(collision.x),
-				(int) (currentY - (dir.y < 0 ? 1 : 0)),
-				(int) ceil(collision.z)
-			};
-			currentY += dir.y > 0 ? 1 : -1;
-		} while (true);
-	}
-
-	if (dir.z != 0) {
-		const float deltaX = dir.x / dir.z;
-		const float deltaY = dir.y / dir.z;
-		const float offsetX = pos.x - pos.z * deltaX;
-		const float offsetY = pos.y - pos.z * deltaY;
-
-		float currentZ = (dir.z > 0) ? ceil(pos.z) : floor(pos.z);
-		do {
-			Vector3 collision = Vector3(
-				offsetX + currentZ * deltaX,
-				offsetY + currentZ * deltaY,
-				currentZ
-			);
-
-			float dist = Vector3::Distance(pos, collision);
-			if (dist > maxDistance) break;
-			cubes[dist] = {
-				(int) floor(collision.x),
-				(int) floor(collision.y),
-				(int) (currentZ - (dir.z > 0 ? 1 : 0)),
-			};
-			currentZ += dir.z > 0 ? 1 : -1;
-		} while (true);
-	}
-
-	std::vector<std::array<int, 3>> result;
-	for (auto& cube : cubes)
-		result.push_back(cube.second);
-
-	return result;
 }
 
 void Game::Initialize(HWND window, int width, int height) {
@@ -161,6 +75,7 @@ void Game::Initialize(HWND window, int width, int height) {
 	GenerateInputLayout<VertexLayout_PositionColor>(m_deviceResources.get(), &lineShader);
 
 	world.Generate();
+	world.CreateMesh(m_deviceResources.get());
 	terrain.Create(m_deviceResources.get());
 
 	Vector3 pos(20.1, 15.3, 20.2);
@@ -172,14 +87,8 @@ void Game::Initialize(HWND window, int width, int height) {
 	debugLine.PushVertex(VertexLayout_PositionColor(pos + dir * 20, { 1,0,0,1 }));
 	debugLine.Create(m_deviceResources.get());
 
-	const auto res = Raycast(pos, dir, maxDist);
-	for (auto& cube : res)
-		world.SetCube(cube[0], cube[1], cube[2], DIAMOND_BLOCK);
 
-	world.CreateMesh(m_deviceResources.get());
-
-	camera.SetRotation(Quaternion(0.0297699161, 0.904104531, 0.0638608783, -0.421462208));
-	camera.SetPosition(Vector3(17, 16.59, 16.6));
+	//camera.SetPosition(Vector3(17, 16.59, 16.6));
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -207,17 +116,20 @@ void Game::Tick() {
 }
 
 bool imGuiMode = false;
+bool freeLook = true;
 
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
 	auto const pad = m_gamePad->GetState(0);
-	const double dt = timer.GetElapsedSeconds();
 
 	if (kb.Escape) ExitGame();
 	if (kb.IsKeyDown(Keyboard::P)) imGuiMode = true;
 	if (kb.IsKeyDown(Keyboard::M)) imGuiMode = false;
+
+	if (kb.IsKeyDown(Keyboard::O)) freeLook = true;
+	if (kb.IsKeyDown(Keyboard::I)) freeLook = false;
 
 	if (imGuiMode) {
 		m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
@@ -227,7 +139,8 @@ void Game::Update(DX::StepTimer const& timer) {
 	} 
 	else {
 		m_mouse->SetMode(Mouse::MODE_RELATIVE);
-		player.Update(dt, kb, ms);
+		if (freeLook) player.UpdateFreeLook(timer.GetElapsedSeconds(), kb, ms);
+		else player.UpdatePlayer(timer.GetElapsedSeconds(), kb, ms);
 	}
 }
 
@@ -255,6 +168,11 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 	light.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
+
+	if (world.regen) {
+		world.CreateMesh(m_deviceResources.get());
+		world.regen = false;
+	}
 
 	context->OMSetBlendState(m_commonStates->Opaque(), nullptr, 0xffffffff);
 	world.Draw(m_deviceResources.get(), SP_OPAQUE);
