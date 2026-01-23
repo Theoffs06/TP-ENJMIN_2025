@@ -45,6 +45,87 @@ Game::~Game() {
 	g_inputLayouts.clear();
 }
 
+std::vector<std::array<int, 3>> Raycast(Vector3 pos, Vector3 dir, float maxDistance) {
+	std::map<float, std::array<int, 3>> cubes;
+
+	if (dir.x != 0) {
+		float deltaY = dir.y / dir.x;
+		float deltaZ = dir.z / dir.x;
+		float offsetY = pos.y - pos.x * deltaY;
+		float offsetZ = pos.z - pos.x * deltaZ;
+
+		float currentX = (dir.x > 0) ? ceil(pos.x) : floor(pos.x);
+		do {
+			Vector3 collision = Vector3(
+				currentX,
+				offsetY + currentX * deltaY,
+				offsetZ + currentX * deltaZ
+			);
+			float dist = Vector3::Distance(pos, collision);
+			if (dist > maxDistance) break;
+			cubes[dist] = {
+				(int)(currentX - ((dir.x < 0) ? 1 : 0)),
+				(int)floor(collision.y),
+				(int)ceil(collision.z)
+			};
+			currentX += (dir.x > 0) ? 1 : -1;
+		} while (true);
+	}
+
+	if (dir.y != 0) {
+		float deltaX = dir.x / dir.y;
+		float deltaZ = dir.z / dir.y;
+		float offsetX = pos.x - pos.y * deltaX;
+		float offsetZ = pos.z - pos.y * deltaZ;
+
+		float currentY = (dir.y > 0) ? ceil(pos.y) : floor(pos.y);
+		do {
+			Vector3 collision = Vector3(
+				offsetX + currentY * deltaX,
+				currentY,
+				offsetZ + currentY * deltaZ
+			);
+			float dist = Vector3::Distance(pos, collision);
+			if (dist > maxDistance) break;
+			cubes[dist] = {
+				(int)floor(collision.x),
+				(int)(currentY - ((dir.y < 0) ? 1 : 0)),
+				(int)ceil(collision.z)
+			};
+			currentY += (dir.y > 0) ? 1 : -1;
+		} while (true);
+	}
+
+	if (dir.z != 0) {
+		float deltaX = dir.x / dir.z;
+		float deltaY = dir.y / dir.z;
+		float offsetX = pos.x - pos.z * deltaX;
+		float offsetY = pos.y - pos.z * deltaY;
+
+		float currentZ = (dir.z > 0) ? ceil(pos.z) : floor(pos.z);
+		do {
+			Vector3 collision = Vector3(
+				offsetX + currentZ * deltaX,
+				offsetY + currentZ * deltaY,
+				currentZ
+			);
+			float dist = Vector3::Distance(pos, collision);
+			if (dist > maxDistance) break;
+			cubes[dist] = {
+				(int)floor(collision.x),
+				(int)floor(collision.y),
+				(int)(currentZ - ((dir.z > 0) ? 1 : 0)),
+			};
+			currentZ += (dir.z > 0) ? 1 : -1;
+		} while (true);
+	}
+
+	std::vector<std::array<int, 3>> result;
+	for (auto& cube : cubes)
+		result.push_back(cube.second);
+	return result;
+}
+
 void Game::Initialize(HWND window, int width, int height) {
 	// Create input devices
 	m_gamePad = std::make_unique<GamePad>();
@@ -71,12 +152,27 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	lineShader.Create(m_deviceResources.get());
 	GenerateInputLayout<VertexLayout_PositionColor>(m_deviceResources.get(), &lineShader);
-	debugLine.PushVertex(VertexLayout_PositionColor({ 0, 0, 0 }, { 1,0,0,1 }));
-	debugLine.PushVertex(VertexLayout_PositionColor({ 10, 10, 10 }, { 1,0,0,1 }));
+
+	world.Generate();
+	terrain.Create(m_deviceResources.get());
+
+
+	Vector3 pos(20.1, 15.3, 20.2);
+	Vector3 dir(-0.2, -0.7, -0.6);
+	float maxDist = 20;
+	dir.Normalize();
+
+	debugLine.PushVertex(VertexLayout_PositionColor(pos, { 0,0,1,1 }));
+	debugLine.PushVertex(VertexLayout_PositionColor(pos + dir * 20, { 1,0,0,1 }));
 	debugLine.Create(m_deviceResources.get());
 
-	world.Generate(m_deviceResources.get());
-	terrain.Create(m_deviceResources.get());
+	auto res = Raycast(pos, dir, maxDist);
+	for (auto& cube : res)
+		world.SetCube(cube[0], cube[1], cube[2], EMPTY);
+	world.CreateMesh(m_deviceResources.get());
+
+	camera.SetRotation(Quaternion(0.0297699161, 0.904104531, 0.0638608783, -0.421462208));
+	camera.SetPosition(Vector3(17, 16.59, 16.6));
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -103,7 +199,7 @@ void Game::Tick() {
 	Render();
 }
 
-bool imGuiMode = false;
+bool imGuiMode = true;
 
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer) {
