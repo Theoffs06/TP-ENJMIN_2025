@@ -126,4 +126,9 @@ public:
 		ID3D11Buffer* cbs[] = { m_buffer.Get() };
 		deviceRes->GetD3DDeviceContext()->VSSetConstantBuffers(slot, 1, cbs);
 	}
+
+	void ApplyToPS(const DeviceResources* deviceRes, const int slot) const {
+		ID3D11Buffer* cbs[] = { m_buffer.Get() };
+		deviceRes->GetD3DDeviceContext()->PSSetConstantBuffers(slot, 1, cbs);
+	}
 };

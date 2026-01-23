@@ -9,7 +9,8 @@
 #include "Engine/VertexLayout.h"
 #include "Engine/Shader.h"
 #include "Engine/Texture.h"
-#include "Engine/Camera..h"
+#include "Engine/Camera.h"
+#include "Engine/Light.h"
 #include "Minicraft/Player.h"
 #include "Minicraft/World.h"
 
@@ -24,6 +25,8 @@ using Microsoft::WRL::ComPtr;
 Shader basicShader(L"basic");
 Texture terrain(L"terrain");
 Camera camera(60, 1.0);
+Light light({ -1, -1, -1 }, { 0.2f, 0.15f, 0.25f }, { 0.98f, 0.87f, 0.34f });
+
 World world;
 
 Player player(camera, world);
@@ -148,6 +151,7 @@ void Game::Initialize(HWND window, int width, int height) {
 
 	camera.UpdateAspectRatio((float) width / (float) height);
 	camera.Create(m_deviceResources.get());
+	light.Create(m_deviceResources.get());
 
 	m_commonStates = std::make_unique<CommonStates>(m_deviceResources->GetD3DDevice());
 
@@ -218,7 +222,8 @@ void Game::Update(DX::StepTimer const& timer) {
 	if (imGuiMode) {
 		m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
 		world.ShowImGui(m_deviceResources.get());
-		player.ShowImGUI();
+		player.ShowImGui();
+		light.ShowImGui();
 	} 
 	else {
 		m_mouse->SetMode(Mouse::MODE_RELATIVE);
@@ -248,6 +253,7 @@ void Game::Render() {
 
 	basicShader.Apply(m_deviceResources.get());
 	terrain.Apply(m_deviceResources.get());
+	light.Apply(m_deviceResources.get());
 	camera.Apply(m_deviceResources.get());
 
 	context->OMSetBlendState(m_commonStates->Opaque(), nullptr, 0xffffffff);

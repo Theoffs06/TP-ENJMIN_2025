@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Camera..h"
+#include "Camera.h"
 
 Camera::Camera(float fov, float aspectRatio) : m_fov(fov) {
 	UpdateAspectRatio(aspectRatio);

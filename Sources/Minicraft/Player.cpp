@@ -4,7 +4,7 @@
 Player::Player(Camera& camera, World& world) : m_camera(camera), m_world(world) {
 }
 
-void Player::Update(double dt, const Keyboard::State& kb, const Mouse::State& ms) const {
+void Player::Update(double dt, const Keyboard::State& kb, const Mouse::State& ms) {
 	Vector3 delta = Vector3::Zero;
 	if (kb.Z) delta += m_camera.Forward();
 	if (kb.S) delta -= m_camera.Forward();
@@ -14,13 +14,16 @@ void Player::Update(double dt, const Keyboard::State& kb, const Mouse::State& ms
 	if (kb.LeftShift) delta -= m_camera.Up();
 	m_camera.SetPosition(m_camera.GetPosition() + delta * m_cameraSpeed * dt);
 
-	Quaternion rot = m_camera.GetRotation();
-	rot *= Quaternion::CreateFromAxisAngle(m_camera.Right(), -ms.y * dt * m_cameraSensitivity);
-	rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x * dt * m_cameraSensitivity);
+	m_pitch -= ms.x * dt * m_cameraSensitivity;
+	m_yaw -= ms.y * dt * m_cameraSensitivity;
+	m_yaw = std::clamp(m_yaw, -1.4f, 1.4f);
+
+	Quaternion rot = Quaternion::CreateFromAxisAngle(Vector3::Right, m_yaw);
+	rot *= Quaternion::CreateFromAxisAngle(Vector3::Up, m_pitch);
 	m_camera.SetRotation(rot);
 }
 
-void Player::ShowImGUI() {
+void Player::ShowImGui() {
 	ImGui::Begin("Player");
 
 	if (ImGui::CollapsingHeader("Free Look Camera")) {

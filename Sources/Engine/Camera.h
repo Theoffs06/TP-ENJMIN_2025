@@ -1,42 +1,42 @@
 #pragma once
 
-#include "Buffer.h"
+#include "Engine/Buffer.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 class Camera {
-	float nearPlane = 0.01f;
-	float farPlane = 500.0f;
-	float fov = 60.0f;
-	DirectX::SimpleMath::Quaternion rotation = Quaternion::Identity;
-	DirectX::SimpleMath::Vector3 position = Vector3::Backward * 5;
+	float m_near = 0.01f;
+	float m_far = 500.0f;
+	float m_fov = 60.0f;
 
-	DirectX::SimpleMath::Matrix view;
-	DirectX::SimpleMath::Matrix proj;
+	Quaternion m_rotation = Quaternion::Identity;
+	Vector3 m_position = Vector3::Backward * 5;
+	Matrix m_projection;
+	Matrix m_view;
 
 	struct CameraData {
-		DirectX::SimpleMath::Matrix mView;
-		DirectX::SimpleMath::Matrix mProj;
+		Matrix mView;
+		Matrix mProjection;
 	};
-	ConstantBuffer<CameraData> cbCamera;
+
+	ConstantBuffer<CameraData> m_cbCamera;
 public:
 	Camera(float fov, float aspectRatio);
 
-	void SetPosition(const Vector3& pos) { position = pos; UpdateViewMatrix(); }
-	void SetRotation(const Quaternion& rot) { rotation = rot; UpdateViewMatrix(); }
-	Vector3 GetPosition() const { return position; }
-	Quaternion GetRotation() const { return rotation; }
-
-	Vector3 Forward() const { return Vector3::TransformNormal(Vector3::Forward, view.Invert()); }
-	Vector3 Right() const { return Vector3::TransformNormal(Vector3::Right, view.Invert()); }
-	Vector3 Up() const { return Vector3::TransformNormal(Vector3::Up, view.Invert()); }
-	Matrix GetInverseViewMatrix() const { return view.Invert(); }
-
-	void Create(DeviceResources* deviceRes);
-	void Apply(DeviceResources* deviceRes);
-
+	void Create(const DeviceResources* deviceRes);
+	void Apply(const DeviceResources* deviceRes);
 	void UpdateAspectRatio(float aspectRatio);
+
+	void SetPosition(const Vector3& pos);
+	void SetRotation(const Quaternion& rot);
+
+	Vector3 Forward() const;
+	Vector3 Right() const;
+	Vector3 Up() const;
+	Matrix GetInverseViewMatrix() const;
+	Vector3 GetPosition() const;
+	Quaternion GetRotation() const;
 private:
 	void UpdateViewMatrix();
 };
