@@ -40,7 +40,7 @@ float treeChance = 0.001f;
 // Others Parameters
 float waterHeight = 15.0f;
 
-void World::Generate(const DeviceResources* devRes) {
+void World::Generate() {
 	constexpr siv::BasicPerlinNoise<float> perlin;
 	constexpr int GLOBAL_SIZE = WORLD_SIZE * Chunk::CHUNK_SIZE;
 
@@ -137,8 +137,9 @@ void World::Generate(const DeviceResources* devRes) {
 			}
 		}
 	}
+}
 
-
+void World::CreateMesh(const DeviceResources* devRes) {
 	for (int z = 0; z < WORLD_SIZE; ++z) {
 		for (int y = 0; y < WORLD_SIZE; ++y) {
 			for (int x = 0; x < WORLD_SIZE; ++x) {
@@ -210,8 +211,10 @@ void World::ShowImGui(const DeviceResources* devRes) {
 		ImGui::DragFloat("Water Height", &waterHeight, 0.1f, 0);
 	}
 
-	if (ImGui::Button("Generate!")) 
-		Generate(devRes);
+	if (ImGui::Button("Generate!")) {
+		Generate();
+		CreateMesh(devRes);
+	}
 
 	ImGui::End();
 }
